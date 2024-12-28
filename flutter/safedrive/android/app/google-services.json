@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "211561372369",
+    "project_id": "safedrive-c694c",
+    "storage_bucket": "safedrive-c694c.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:211561372369:android:aad50b56847874921543f0",
+        "android_client_info": {
+          "package_name": "com.safedrive.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAfyH71_LwL0T4uO-kFGP6xP_w9c3cTbNg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

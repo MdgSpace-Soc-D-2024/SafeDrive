@@ -1,0 +1,11 @@
+img {
+    width: 30%;
+    margin: 1.6666%;
+}
+
+nav {
+    padding: 1em 1em 1em 0em;
+    font-weight: 700;
+    border-bottom: 2px solid grey;
+    margin-left: 1.6666%;
+}

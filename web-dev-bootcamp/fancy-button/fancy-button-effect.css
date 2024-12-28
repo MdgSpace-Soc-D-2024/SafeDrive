@@ -1,0 +1,21 @@
+#button {
+    height: 50px;
+    width: 100px;
+    font-size: 1em;
+    display: block;
+    margin: 450px auto;
+    border: 3px solid #FE6F5E;
+    color: #FE2A13;
+    border-radius: 10px;
+    transition: all 0.20s linear 0.20s;
+}
+
+#button:hover {
+    border: 3px solid #01C8DE;
+    color: #016F7B;
+    transition: all 0.20s linear 0.20s;
+    transition-delay: 0.20s;
+    transform: translateY(-5px);
+    box-shadow: 0px 10px 5px 5px #C5F9FF99;
+    cursor: pointer;
+}
