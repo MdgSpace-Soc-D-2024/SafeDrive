@@ -4,6 +4,8 @@ import 'package:safedrive/pages/drivescreen.dart';
 import 'package:safedrive/pages/settingscreen.dart';
 import 'package:safedrive/pages/mapscreen.dart';
 
+// import 'package:google_maps_flutter/google_maps_flutter.dart';
+
 import 'package:firebase_core/firebase_core.dart';
 
 Color darkBlue = Color(0xFF0D1B2A); // Dark Blue
@@ -58,6 +60,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
+  // static const LatLng _pGooglePlex = LatLng(37.4223, -122.0848);
   int _currentIndex = 1;
   final List<Widget> _screens = [
     MapScreen(),

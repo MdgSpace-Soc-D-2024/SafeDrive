@@ -3,10 +3,6 @@
 <plist version="1.0">
 <dict>
 
-<!-- Add this key for Google Maps API -->
-<key>GMSApiKey</key>
-<string>AIzaSyCq1d0BgzxmZpjThelvQ7TYIJCqWD6e9vw</string>
-
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -50,5 +46,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<string>location</string>
+	<key>UIBackgroundModes</key>
+	<string>NSLocationWhenInUseUsageDescription</string>
+	<key>Want to display location on map, and track it.</key>
+	<string>NSLocationAlwaysAndWhenInUseUsageDescription</string>
+	<key>Want to display location on map, and track it.</key>
 </dict>
 </plist>
