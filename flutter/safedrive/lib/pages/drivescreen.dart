@@ -37,11 +37,7 @@ class _DriveScreenState extends State<DriveScreen> {
   void initState() {
     _initializeMapRenderer();
     super.initState();
-    getLocationUpdates().then((_) => {
-          getPolylinePoints().then((coordinates) => {
-                generatePolylineFromPoints(coordinates),
-              }),
-        });
+    getLocationUpdates();
   }
 
   // Checks if our platform is Android and uses that to improve performance
@@ -91,7 +87,7 @@ class _DriveScreenState extends State<DriveScreen> {
   // Add marker
   void _addMarker(LatLng pos) async {
     setState(
-      () async {
+      () {
         _destination = Marker(
             markerId: const MarkerId("_destination"),
             infoWindow: const InfoWindow(title: "Destination"),
@@ -101,12 +97,6 @@ class _DriveScreenState extends State<DriveScreen> {
         // Reset info
         _info = null;
         _destinationPoint = LatLng(pos.latitude, pos.longitude);
-        _isRouteButtonEnabled = true;
-
-        // if (_currentP != null && _destinationPoint != null) {
-        //   List<LatLng> polylineCoordinates = await getPolylinePoints();
-        //   generatePolylineFromPoints(polylineCoordinates);
-        // }
       },
     );
   }
@@ -259,22 +249,24 @@ class _DriveScreenState extends State<DriveScreen> {
         });
 
         // Update route if destination is set
-        // if (_destinationPoint != null) {
-        //   getPolylinePoints();
-        // }
+        if (_destinationPoint != null) {
+          getPolylinePoints()
+              .then((coordinates) => {generatePolylineFromPoints(coordinates)});
+        }
       }
     });
   }
 
+  // Gets polyline points from Google
   Future<List<LatLng>> getPolylinePoints() async {
     List<LatLng> polylineCoordinates = [];
     PolylinePoints polylinePoints = PolylinePoints();
     PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
       googleApiKey: googleAPIKey,
       request: PolylineRequest(
-        origin: PointLatLng(originPoint.latitude, originPoint.longitude),
-        destination:
-            PointLatLng(destinationPoint.latitude, destinationPoint.longitude),
+        origin: PointLatLng(_currentP!.latitude, _currentP!.longitude),
+        destination: PointLatLng(
+            _destinationPoint!.latitude, _destinationPoint!.longitude),
         mode: TravelMode.driving,
       ),
     );
