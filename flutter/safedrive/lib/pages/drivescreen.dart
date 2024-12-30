@@ -1,22 +1,17 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:safedrive/pages/.env.dart';
-// import 'package:safedrive/pages/directions_repository.dart';
 import 'directions_model.dart';
 import 'package:location/location.dart';
-// import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 
 class DriveScreen extends StatefulWidget {
   DriveScreen({super.key});
 
-  // static const LatLng _pGooglePlex = LatLng(37.4223, -122.0848);
   final LatLng initialLocation = LatLng(37.4223, -122.0848);
-  // final LatLng _initialCameraPosition = LatLng(37.4223, -122.0848);
 
   @override
   _DriveScreenState createState() => _DriveScreenState();
@@ -28,21 +23,25 @@ class _DriveScreenState extends State<DriveScreen> {
   final LatLng _initialCameraPosition = LatLng(37.4223, -122.0848);
 
   LatLng originPoint = LatLng(23.6755568, 86.1604257);
-  LatLng destinationPoint = LatLng(23.000000, 89.000000);
+  LatLng destinationPoint = LatLng(23.670, 86.0);
   Location _locationController = new Location();
   GoogleMapController? mapController;
-  LatLng? _currentP = null;
+  LatLng? _currentP = LatLng(24, 86);
 
   final Completer<GoogleMapController> _mapController =
       Completer<GoogleMapController>();
 
+  Map<PolylineId, Polyline> polylines = {};
+
   @override
   void initState() {
+    _initializeMapRenderer();
     super.initState();
     getLocationUpdates().then((_) => {
-          getPolylinePoints().then((coordinates) => {print(coordinates)}),
+          getPolylinePoints().then((coordinates) => {
+                generatePolylineFromPoints(coordinates),
+              }),
         });
-    _initializeMapRenderer();
   }
 
   // Checks if our platform is Android and uses that to improve performance
@@ -87,44 +86,29 @@ class _DriveScreenState extends State<DriveScreen> {
   Directions? _info;
   LatLng? _originPoint;
   LatLng? _destinationPoint;
+  bool _isRouteButtonEnabled = false;
 
   // Add marker
   void _addMarker(LatLng pos) async {
-    if (_origin == null || _origin != null && _destination != null) {
-      setState(
-        () {
-          _origin = Marker(
-              markerId: const MarkerId("origin"),
-              infoWindow: const InfoWindow(title: "Origin"),
-              icon: BitmapDescriptor.defaultMarker,
-              position: pos);
-          _destination = null;
-          _originPoint = LatLng(pos.latitude, pos.longitude);
+    setState(
+      () async {
+        _destination = Marker(
+            markerId: const MarkerId("_destination"),
+            infoWindow: const InfoWindow(title: "Destination"),
+            icon: BitmapDescriptor.defaultMarker,
+            position: pos);
 
-          // Reset info
-          _info = null;
-          LatLng _initialCameraPosition = LatLng(pos.latitude, pos.longitude);
-        },
-      );
-    } else {
-      setState(
-        () {
-          _destination = Marker(
-              markerId: const MarkerId("destination"),
-              infoWindow: const InfoWindow(title: "Destination"),
-              icon: BitmapDescriptor.defaultMarker,
-              position: pos);
-          _destinationPoint = LatLng(pos.latitude, pos.longitude);
-        },
-      );
+        // Reset info
+        _info = null;
+        _destinationPoint = LatLng(pos.latitude, pos.longitude);
+        _isRouteButtonEnabled = true;
 
-      // Get directions
-      // final directions = await DirectionsRepository().getDirections(
-      //   origin: _origin!.position,
-      //   destination: pos,
-      // );
-      // setState(() => _info = directions);
-    }
+        // if (_currentP != null && _destinationPoint != null) {
+        //   List<LatLng> polylineCoordinates = await getPolylinePoints();
+        //   generatePolylineFromPoints(polylineCoordinates);
+        // }
+      },
+    );
   }
 
   @override
@@ -157,7 +141,7 @@ class _DriveScreenState extends State<DriveScreen> {
                     : GoogleMap(
                         // Markers
                         markers: {
-                          if (_origin != null) _origin!,
+                          // if (_origin != null) _origin!,
                           if (_destination != null) _destination!,
 
                           // Live location marker
@@ -165,22 +149,12 @@ class _DriveScreenState extends State<DriveScreen> {
                             markerId: MarkerId("_currentLocation"),
                             icon: BitmapDescriptor.defaultMarker,
                             position: _currentP!,
+                            infoWindow: InfoWindow(
+                              title: "Current Location",
+                            ),
                           ),
                         },
-                        polylines: {
-                          _info != null
-                              ? Polyline(
-                                  polylineId:
-                                      const PolylineId('overview_polyline'),
-                                  color: Colors.red,
-                                  width: 5,
-                                  points: _info!.polylinePoints!
-                                      .map((e) =>
-                                          LatLng(e.latitude, e.longitude))
-                                      .toList(),
-                                )
-                              : Polyline(polylineId: const PolylineId('null'))
-                        },
+                        polylines: Set<Polyline>.of(polylines.values),
                         onLongPress: _addMarker,
                         onMapCreated: _onMapCreated,
                         initialCameraPosition: CameraPosition(
@@ -228,59 +202,23 @@ class _DriveScreenState extends State<DriveScreen> {
           ),
           Positioned(
             right: 8,
-            bottom: 100,
+            bottom: 500,
             child: FloatingActionButton(
               onPressed: () {
-                if (_destination != null) {
-                  mapController?.animateCamera(
-                    CameraUpdate.newCameraPosition(
-                      CameraPosition(
-                        target: _destination!.position,
-                        zoom: 14.5,
-                      ),
-                    ),
-                  );
-                }
-              },
-              mini: true,
-              backgroundColor: Colors.white70,
-              child: Text("D"),
-            ),
-          ),
-          Positioned(
-            right: 8,
-            bottom: 150,
-            child: FloatingActionButton(
-              onPressed: () {
-                if (_origin != null) {
-                  mapController?.animateCamera(
-                    CameraUpdate.newCameraPosition(
-                      CameraPosition(
-                        target: _origin!.position,
-                        zoom: 14.5,
-                      ),
-                    ),
-                  );
-                }
-              },
-              mini: true,
-              backgroundColor: Colors.white70,
-              child: Text("O"),
-            ),
-          ),
-          Positioned(
-            right: 8,
-            bottom: 200,
-            child: FloatingActionButton(
-              onPressed: () {
-                _info != null
+                _destinationPoint != null
                     ? mapController?.animateCamera(
-                        CameraUpdate.newLatLngBounds(_info!.bounds, 100.0),
+                        CameraUpdate.newCameraPosition(CameraPosition(
+                          target: _destinationPoint!,
+                          zoom: 14.5,
+                        )),
                       )
                     : () {};
               },
               mini: true,
               backgroundColor: Colors.white,
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(5)),
               child: Icon(Icons.center_focus_strong),
             ),
           ),
@@ -319,6 +257,11 @@ class _DriveScreenState extends State<DriveScreen> {
           _cameraToPosition(_currentP!);
           print(_currentP);
         });
+
+        // Update route if destination is set
+        // if (_destinationPoint != null) {
+        //   getPolylinePoints();
+        // }
       }
     });
   }
@@ -327,13 +270,14 @@ class _DriveScreenState extends State<DriveScreen> {
     List<LatLng> polylineCoordinates = [];
     PolylinePoints polylinePoints = PolylinePoints();
     PolylineResult result = await polylinePoints.getRouteBetweenCoordinates(
-        googleApiKey: googleAPIKey,
-        request: PolylineRequest(
-          origin: PointLatLng(originPoint.latitude, originPoint.longitude),
-          destination: PointLatLng(
-              destinationPoint.latitude, destinationPoint.longitude),
-          mode: TravelMode.driving,
-        ));
+      googleApiKey: googleAPIKey,
+      request: PolylineRequest(
+        origin: PointLatLng(originPoint.latitude, originPoint.longitude),
+        destination:
+            PointLatLng(destinationPoint.latitude, destinationPoint.longitude),
+        mode: TravelMode.driving,
+      ),
+    );
     if (result.points.isNotEmpty) {
       result.points.forEach((PointLatLng point) {
         polylineCoordinates.add(LatLng(point.latitude, point.longitude));
@@ -342,5 +286,18 @@ class _DriveScreenState extends State<DriveScreen> {
       print(result.errorMessage);
     }
     return polylineCoordinates;
+  }
+
+  void generatePolylineFromPoints(List<LatLng> polylineCoordinates) async {
+    PolylineId id = PolylineId("poly");
+    Polyline polyline = Polyline(
+      polylineId: id,
+      color: Colors.blue.shade300,
+      points: polylineCoordinates,
+      width: 8,
+    );
+    setState(() {
+      polylines[id] = polyline;
+    });
   }
 }
