@@ -5,7 +5,6 @@ import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:safedrive/pages/.env.dart';
-import 'directions_model.dart';
 import 'package:location/location.dart';
 
 class DriveScreen extends StatefulWidget {
@@ -18,9 +17,8 @@ class DriveScreen extends StatefulWidget {
 }
 
 class _DriveScreenState extends State<DriveScreen> {
-  // static const LatLng _pGooglePlex = LatLng(37.4223, -122.0848);
-  final LatLng initialLocation = LatLng(37.4223, -122.0848);
-  final LatLng _initialCameraPosition = LatLng(37.4223, -122.0848);
+  final LatLng _initialCameraPosition = LatLng(37.4223,
+      -122.0848); // this should store the LatLng of the place where the user was last at before closing the app
 
   LatLng originPoint = LatLng(23.6755568, 86.1604257);
   LatLng destinationPoint = LatLng(23.670, 86.0);
@@ -77,12 +75,8 @@ class _DriveScreenState extends State<DriveScreen> {
     );
   }
 
-  Marker? _origin;
   Marker? _destination;
-  Directions? _info;
-  LatLng? _originPoint;
   LatLng? _destinationPoint;
-  bool _isRouteButtonEnabled = false;
 
   // Add marker
   void _addMarker(LatLng pos) async {
@@ -94,8 +88,6 @@ class _DriveScreenState extends State<DriveScreen> {
             icon: BitmapDescriptor.defaultMarker,
             position: pos);
 
-        // Reset info
-        _info = null;
         _destinationPoint = LatLng(pos.latitude, pos.longitude);
       },
     );
@@ -159,34 +151,6 @@ class _DriveScreenState extends State<DriveScreen> {
                             true, // Disable zoom controls if not needed
                         compassEnabled: true, // Disable compass if not needed
                       ),
-                if (_info != null)
-                  Positioned(
-                    top: 20.0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 6.0,
-                        horizontal: 12.0,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.yellowAccent,
-                        borderRadius: BorderRadius.circular(20.0),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black26,
-                            offset: Offset(0, 2),
-                            blurRadius: 6.0,
-                          )
-                        ],
-                      ),
-                      child: Text(
-                        '${_info?.totalDistance}, ${_info?.totalDuration}',
-                        style: const TextStyle(
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  )
               ],
             ),
           ),

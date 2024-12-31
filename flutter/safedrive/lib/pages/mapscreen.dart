@@ -1,9 +1,14 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
-import 'package:safedrive/pages/directions_repository.dart';
+import 'package:safedrive/pages/.env.dart';
 import 'directions_model.dart';
+import 'package:http/http.dart' as http;
+import 'package:uuid/uuid.dart';
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -18,12 +23,61 @@ class MapScreen extends StatefulWidget {
 }
 
 class _MapScreenState extends State<MapScreen> {
+  TextEditingController textEditingController = TextEditingController();
+  var uuid = Uuid();
+  String _sessionToken = '122344';
+  List<dynamic> _placesList = [];
+
   GoogleMapController? mapController;
 
   @override
   void initState() {
     super.initState();
     _initializeMapRenderer();
+
+    textEditingController.addListener(() {
+      onChange();
+    });
+  }
+
+  void onChange() {
+    if (_sessionToken == null) {
+      setState(() {
+        _sessionToken = uuid.v4();
+      });
+    }
+
+    getSuggestion(textEditingController.text);
+  }
+
+  void getSuggestion(String input) async {
+    String kPLACES_API_KEY = googleAPIKey;
+    String baseURL =
+        'https://maps.googleapis.com/maps/api/place/autocomplete/json';
+    String request =
+        '$baseURL?input=$input&key=$kPLACES_API_KEY&sessiontoken=$_sessionToken';
+
+    var response = await http.get(Uri.parse(request));
+    var data = response.body.toString();
+
+    print('data');
+    if (response.statusCode == 200) {
+      setState(() {
+        _placesList = jsonDecode(response.body.toString())['predictions'];
+      });
+    } else {
+      throw Exception('Failed to load suggestions.');
+    }
+  }
+
+  bool _isListViewVisible =
+      false; // Boolean to track if the ListView should be visible
+  TextEditingController searchBarEditingController = TextEditingController();
+
+  void _toggleListViewVisibility() {
+    setState(() {
+      _isListViewVisible = !_isListViewVisible;
+    });
   }
 
   // Checks if our platform is Android and uses that to improve performance
@@ -51,23 +105,23 @@ class _MapScreenState extends State<MapScreen> {
     ));
   }
 
-  Marker? _currentLocation;
+  Marker? _chosenLocation;
   Directions? _info;
-  LatLng? _currentLocationLatLng;
+  LatLng? _chosenLocationLatLng;
 
   // Add marker FUNCTION
   void _addMarker(LatLng pos) async {
     setState(
       () {
-        _currentLocation = Marker(
-            markerId: const MarkerId("currentLocation"),
-            infoWindow: const InfoWindow(title: "Current Location"),
+        _chosenLocation = Marker(
+            markerId: const MarkerId("chosenLocation"),
+            infoWindow: const InfoWindow(title: "Chosen Location"),
             icon: BitmapDescriptor.defaultMarker,
             position: pos);
 
         // Reset info
         _info = null;
-        _currentLocationLatLng = LatLng(pos.latitude, pos.longitude);
+        _chosenLocationLatLng = LatLng(pos.latitude, pos.longitude);
       },
     );
   }
@@ -89,83 +143,92 @@ class _MapScreenState extends State<MapScreen> {
             child: Stack(
               alignment: Alignment.center,
               children: [
-                GoogleMap(
-                  markers: {
-                    if (_currentLocation != null) _currentLocation!,
-                  },
-                  onLongPress: _addMarker,
-                  onMapCreated: _onMapCreated,
-                  initialCameraPosition: CameraPosition(
-                    target: widget.initialLocation,
-                    zoom: 15.0,
-                  ),
-                  myLocationEnabled: true,
-                  myLocationButtonEnabled: true,
-                  mapType: MapType.normal, // Use normal map type for simplicity
-                  zoomControlsEnabled:
-                      true, // Disable zoom controls if not needed
-                  compassEnabled: true, // Disable compass if not needed
-                ),
-                if (_info != null)
-                  Positioned(
-                    top: 20.0,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 6.0,
-                        horizontal: 12.0,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Colors.yellowAccent,
-                        borderRadius: BorderRadius.circular(20.0),
-                        boxShadow: const [
-                          BoxShadow(
-                            color: Colors.black26,
-                            offset: Offset(0, 2),
-                            blurRadius: 6.0,
-                          )
-                        ],
-                      ),
-                      child: Text(
-                        '${_info?.totalDistance}, ${_info?.totalDuration}',
-                        style: const TextStyle(
-                          fontSize: 18.0,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                GestureDetector(
+                  onTap: _toggleListViewVisibility,
+                  child: GoogleMap(
+                    markers: {
+                      if (_chosenLocation != null) _chosenLocation!,
+                    },
+                    onLongPress: _addMarker,
+                    onMapCreated: _onMapCreated,
+                    initialCameraPosition: CameraPosition(
+                      target: widget.initialLocation,
+                      zoom: 15.0,
                     ),
-                  )
+                    myLocationEnabled: true,
+                    myLocationButtonEnabled: true,
+                    mapType:
+                        MapType.normal, // Use normal map type for simplicity
+                    zoomControlsEnabled:
+                        true, // Disable zoom controls if not needed
+                    compassEnabled: true, // Disable compass if not needed
+                    padding: EdgeInsets.only(
+                      top: 50,
+                      bottom: 0,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white60,
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(15),
-                bottomRight: Radius.circular(15),
+          Column(
+            children: [
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white70,
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(15),
+                    bottomRight: Radius.circular(15),
+                  ),
+                ),
+                child: TextFormField(
+                  controller: textEditingController,
+                  decoration: InputDecoration(
+                      hintText: "Search a place...",
+                      border: InputBorder.none,
+                      // focusedBorder: InputBorder.none,
+                      // enabledBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.fromLTRB(10, 10, 10, 10),
+                      prefixIcon: Icon(Icons.search)),
+                  onTap: _toggleListViewVisibility,
+                ),
               ),
-            ),
-            child: TextField(
-              decoration: InputDecoration(
-                  hintText: "Search a place...",
-                  border: InputBorder.none,
-                  // focusedBorder: InputBorder.none,
-                  // enabledBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.fromLTRB(10, 10, 10, 10),
-                  prefixIcon: Icon(Icons.search)),
-            ),
+              _isListViewVisible && _placesList.length > 0
+                  ? Flexible(
+                      child: Container(
+                        height: 300,
+                        color: Colors.white70,
+                        padding: EdgeInsets.all(10),
+                        child: ListView.builder(
+                            itemCount: _placesList.length,
+                            itemBuilder: (context, index) {
+                              return ListTile(
+                                onTap: () async {
+                                  List<Location> locations =
+                                      await locationFromAddress(
+                                          _placesList[index]['description']);
+                                  print(locations.last.latitude);
+                                  print(locations.last.longitude);
+                                },
+                                title: Text(_placesList[index]['description']),
+                              );
+                            }),
+                      ),
+                    )
+                  : Container(),
+            ],
           ),
           Positioned(
             right: 8,
             bottom: 100,
             child: FloatingActionButton(
               onPressed: () {
-                if (_currentLocationLatLng != null) {
+                if (_chosenLocationLatLng != null) {
                   mapController?.animateCamera(
                     CameraUpdate.newCameraPosition(
                       CameraPosition(
                         target:
-                            _currentLocationLatLng!, // Safely access _currentLocation
+                            _chosenLocationLatLng!, // Safely access _currentLocation
                         zoom: 15.0, // Set the zoom level to 15
                       ),
                     ),

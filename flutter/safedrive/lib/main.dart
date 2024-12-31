@@ -61,7 +61,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   // static const LatLng _pGooglePlex = LatLng(37.4223, -122.0848);
-  int _currentIndex = 1;
+  int _currentIndex = 0;
   final List<Widget> _screens = [
     MapScreen(),
     DriveScreen(),
