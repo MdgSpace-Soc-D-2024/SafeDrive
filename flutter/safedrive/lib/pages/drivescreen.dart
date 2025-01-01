@@ -6,6 +6,9 @@ import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platf
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:safedrive/pages/.env.dart';
 import 'package:location/location.dart';
+import 'mapscreen.dart';
+import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DriveScreen extends StatefulWidget {
   DriveScreen({super.key});
@@ -174,6 +177,169 @@ class _DriveScreenState extends State<DriveScreen> {
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(5)),
               child: Icon(Icons.center_focus_strong),
+            ),
+          ),
+          Positioned(
+            right: 8,
+            bottom: 150,
+            child: FloatingActionButton(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100),
+              ),
+              onPressed: () {
+                showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        backgroundColor: Colors.white,
+                        insetPadding: EdgeInsets.all(10),
+                        child: Container(
+                          height: MediaQuery.of(context).size.height * 0.75,
+                          width: MediaQuery.of(context).size.width * 0.90,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: MediaQuery.of(context).size.width * 0.90,
+                                padding: EdgeInsets.all(10),
+                                // decoration: BoxDecoration(
+                                //   border: Border(color: Colors.black),
+                                // ),
+                                child: Text(
+                                  "Favorites",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              ),
+                              FutureBuilder(
+                                future: FirebaseFirestore.instance
+                                    .collection("favoritesList")
+                                    .get(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  }
+                                  if (!snapshot.hasData) {
+                                    return const Text(
+                                        "No favorited locations yet.");
+                                  } else {
+                                    return Expanded(
+                                      child: ListView.builder(
+                                          itemCount:
+                                              snapshot.data!.docs.length - 1,
+                                          itemBuilder: (context, index) {
+                                            var doc =
+                                                snapshot.data!.docs[index];
+                                            return GestureDetector(
+                                              onTap: () {
+                                                _addMarker(LatLng(
+                                                    doc["Latitude"],
+                                                    doc["Longitude"]));
+                                                mapController?.animateCamera(
+                                                  CameraUpdate
+                                                      .newCameraPosition(
+                                                    CameraPosition(
+                                                      target: LatLng(
+                                                          doc["Latitude"],
+                                                          doc["Longitude"]),
+                                                      zoom: 15.0,
+                                                    ),
+                                                  ),
+                                                );
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: ListTile(
+                                                title: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      doc['Name'],
+                                                      style: TextStyle(
+                                                        fontSize: 18,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 8),
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        // Drive to
+                                                        ElevatedButton.icon(
+                                                          onPressed: () {},
+                                                          //   Provider.of<
+                                                          //               DynamicMarker>(
+                                                          //           context,
+                                                          //           listen:
+                                                          //               false)
+                                                          //       .updateVariable(Marker(
+                                                          //           markerId:
+                                                          //               const MarkerId(
+                                                          //                   "_destination"),
+                                                          //           infoWindow:
+                                                          //               const InfoWindow(
+                                                          //                   title:
+                                                          //                       "Destination"),
+                                                          //           icon: BitmapDescriptor
+                                                          //               .defaultMarker,
+                                                          //           position: LatLng(
+                                                          //               doc["Latitude"],
+                                                          //               doc["Longitude"])));
+                                                          // },
+                                                          icon: Icon(Icons
+                                                              .directions_car),
+                                                          label: Text("Drive"),
+                                                        ),
+                                                        SizedBox(width: 8),
+                                                        // Delete button
+                                                        ElevatedButton.icon(
+                                                          onPressed: () {
+                                                            FirebaseFirestore
+                                                                .instance
+                                                                .collection(
+                                                                    "favoritesList")
+                                                                .doc(snapshot
+                                                                    .data!
+                                                                    .docs[index]
+                                                                    .id)
+                                                                .delete();
+                                                          },
+                                                          icon: Icon(
+                                                              Icons.delete,
+                                                              color:
+                                                                  Colors.red),
+                                                          label: Text("Delete"),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            );
+                                          }),
+                                    );
+                                  }
+                                },
+                              )
+                            ],
+                          ),
+                        ),
+                      );
+                    });
+              },
+              elevation: 3,
+              mini: true,
+              backgroundColor: const Color.fromARGB(255, 241, 48, 48),
+              foregroundColor: Colors.white,
+              child: Icon(Icons.favorite_border),
             ),
           ),
         ],

@@ -8,8 +8,17 @@ import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:safedrive/pages/.env.dart';
 import 'package:http/http.dart' as http;
 import 'package:uuid/uuid.dart';
+import 'package:provider/provider.dart';
 
 import 'favoritespage.dart';
+import 'drivescreen.dart';
+import 'package:safedrive/main.dart';
+
+LatLng driveScreenDestination = LatLng(0, 0);
+
+void importToDriveScreen(LatLng coordinates) {
+  driveScreenDestination = coordinates;
+}
 
 class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
@@ -336,12 +345,97 @@ class _MapScreenState extends State<MapScreen> {
                                   } else {
                                     return Expanded(
                                       child: ListView.builder(
-                                          itemCount: snapshot.data!.docs.length,
+                                          itemCount:
+                                              snapshot.data!.docs.length - 1,
                                           itemBuilder: (context, index) {
-                                            return ListTile(
-                                              title: Text(snapshot
-                                                  .data!.docs[index]
-                                                  .data()['Name']),
+                                            var doc =
+                                                snapshot.data!.docs[index];
+                                            return GestureDetector(
+                                              onTap: () {
+                                                _addMarker(LatLng(
+                                                    doc["Latitude"],
+                                                    doc["Longitude"]));
+                                                mapController?.animateCamera(
+                                                  CameraUpdate
+                                                      .newCameraPosition(
+                                                    CameraPosition(
+                                                      target: LatLng(
+                                                          doc["Latitude"],
+                                                          doc["Longitude"]),
+                                                      zoom: 15.0,
+                                                    ),
+                                                  ),
+                                                );
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: ListTile(
+                                                title: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      doc['Name'],
+                                                      style: TextStyle(
+                                                        fontSize: 18,
+                                                      ),
+                                                    ),
+                                                    SizedBox(height: 8),
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        // Drive to
+                                                        ElevatedButton.icon(
+                                                          onPressed: () {
+                                                            // Provider.of<
+                                                            //             DynamicMarker>(
+                                                            //         context,
+                                                            //         listen:
+                                                            //             false)
+                                                            //     .updateVariable(Marker(
+                                                            //         markerId:
+                                                            //             const MarkerId(
+                                                            //                 "_destination"),
+                                                            //         infoWindow:
+                                                            //             const InfoWindow(
+                                                            //                 title:
+                                                            //                     "Destination"),
+                                                            //         icon: BitmapDescriptor
+                                                            //             .defaultMarker,
+                                                            //         position: LatLng(
+                                                            //             doc["Latitude"],
+                                                            //             doc["Longitude"])));
+                                                          },
+                                                          icon: Icon(Icons
+                                                              .directions_car),
+                                                          label: Text("Drive"),
+                                                        ),
+                                                        SizedBox(width: 8),
+                                                        // Delete button
+                                                        ElevatedButton.icon(
+                                                          onPressed: () {
+                                                            FirebaseFirestore
+                                                                .instance
+                                                                .collection(
+                                                                    "favoritesList")
+                                                                .doc(snapshot
+                                                                    .data!
+                                                                    .docs[index]
+                                                                    .id)
+                                                                .delete();
+                                                          },
+                                                          icon: Icon(
+                                                              Icons.delete,
+                                                              color:
+                                                                  Colors.red),
+                                                          label: Text("Delete"),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
                                             );
                                           }),
                                     );

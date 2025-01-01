@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'mapscreen.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
-import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:geocoding/geocoding.dart';
 
 class FavoritesPage extends StatefulWidget {
   const FavoritesPage({super.key});
@@ -22,10 +19,10 @@ Future<String> changeLatLngToAddress(latitude, longitude) async {
   List<Placemark> placemarks = await GeocodingPlatform.instance!
       .placemarkFromCoordinates(latitude, longitude);
   Placemark placemark = placemarks.first;
-  String _address =
+  String address =
       '${placemark.street}, ${placemark.locality}, ${placemark.country}';
-  print(_address);
-  return _address;
+
+  return address;
 }
 
 // Function to upload locations to favorites
@@ -37,9 +34,8 @@ Future<void> uploadTaskToDb(name, latitude, longitude) async {
       "Latitude": latitude,
       "Longitude": longitude,
     }); // Only one instance is created every single time
-    print(data.id);
   } catch (e) {
-    print(e);
+    // do something
   }
 }
 
@@ -47,41 +43,85 @@ class _FavoritesPageState extends State<FavoritesPage> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: Colors.white,
       ),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-        ),
-        child: Column(
-          children: [
-            Container(
-              width: MediaQuery.of(context).size.width * 0.90,
-              padding: EdgeInsets.all(10),
-              // decoration: BoxDecoration(
-              //   border: Border(color: Colors.black),
-              // ),
-              child: Text(
-                "Favorites",
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 20,
-                ),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10),
+            child: Text(
+              "Favorites",
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
               ),
             ),
-            Expanded(
-              child: ListView.builder(
-                  itemCount: favoritesList.length,
-                  itemBuilder: (context, index) {
-                    return ListTile(
-                      title: Text(favoritesList[index].toString()),
-                    );
-                  }),
-            )
-          ],
-        ),
+          ),
+          StreamBuilder<QuerySnapshot>(
+            stream: FirebaseFirestore.instance
+                .collection("favoritesList")
+                .snapshots(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
+              if (!snapshot.hasData) {
+                return const Text("No favorited locations yet.");
+              } else {
+                return Expanded(
+                  child: ListView.builder(
+                      itemCount: snapshot.data!.docs.length - 1,
+                      itemBuilder: (context, index) {
+                        var doc = snapshot.data!.docs[index];
+                        return GestureDetector(
+                          child: ListTile(
+                            title: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  doc['Name'],
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                  ),
+                                ),
+                                SizedBox(height: 8),
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.start,
+                                  children: [
+                                    // Drive to
+                                    ElevatedButton.icon(
+                                      onPressed: () {},
+                                      icon: Icon(Icons.directions_car),
+                                      label: Text("Drive"),
+                                    ),
+                                    SizedBox(width: 8),
+                                    // Delete button
+                                    ElevatedButton.icon(
+                                      onPressed: () {
+                                        FirebaseFirestore.instance
+                                            .collection("favoritesList")
+                                            .doc(snapshot.data!.docs[index].id)
+                                            .delete();
+                                      },
+                                      icon:
+                                          Icon(Icons.delete, color: Colors.red),
+                                      label: Text("Delete"),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }),
+                );
+              }
+            },
+          )
+        ],
       ),
     );
   }

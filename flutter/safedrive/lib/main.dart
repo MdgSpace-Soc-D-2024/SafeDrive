@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:safedrive/firebase_options.dart';
 import 'package:safedrive/pages/drivescreen.dart';
 import 'package:safedrive/pages/settingscreen.dart';
@@ -32,7 +33,9 @@ MaterialColor myCustomMaterialColor = MaterialColor(0xFFE0E1DD, customSwatch);
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
-  runApp(const MyApp());
+  runApp(
+    MyApp(),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -58,7 +61,6 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  // static const LatLng _pGooglePlex = LatLng(37.4223, -122.0848);
   int _currentIndex = 0;
   final List<Widget> _screens = [
     MapScreen(),
@@ -76,7 +78,6 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
-        // backgroundColor: darkBlue,
         currentIndex: _currentIndex,
         onTap: (index) {
           setState(() {
