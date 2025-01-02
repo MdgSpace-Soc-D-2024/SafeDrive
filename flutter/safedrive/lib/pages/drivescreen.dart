@@ -7,8 +7,10 @@ import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:safedrive/pages/.env.dart';
 import 'package:location/location.dart';
 import 'mapscreen.dart';
+import 'misc.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:geolocator/geolocator.dart';
 
 class DriveScreen extends StatefulWidget {
   DriveScreen({super.key});
@@ -80,6 +82,8 @@ class _DriveScreenState extends State<DriveScreen> {
 
   Marker? _destination;
   LatLng? _destinationPoint;
+  LatLng? startPoint;
+  LatLng? endPoint;
 
   // Add marker
   void _addMarker(LatLng pos) async {
@@ -94,6 +98,14 @@ class _DriveScreenState extends State<DriveScreen> {
         _destinationPoint = LatLng(pos.latitude, pos.longitude);
       },
     );
+
+    startPoint = await getCurrentLocationOnce();
+    endPoint = pos;
+    if (startPoint != null && endPoint != null) {
+      List<LatLng> polylineCoordinates =
+          await getPolylinePointsFromCoordinates(startPoint!, endPoint!);
+      generateRedPolylinesFromSteepPoints(polylineCoordinates);
+    }
   }
 
   @override
@@ -275,25 +287,6 @@ class _DriveScreenState extends State<DriveScreen> {
                                                         // Drive to
                                                         ElevatedButton.icon(
                                                           onPressed: () {},
-                                                          //   Provider.of<
-                                                          //               DynamicMarker>(
-                                                          //           context,
-                                                          //           listen:
-                                                          //               false)
-                                                          //       .updateVariable(Marker(
-                                                          //           markerId:
-                                                          //               const MarkerId(
-                                                          //                   "_destination"),
-                                                          //           infoWindow:
-                                                          //               const InfoWindow(
-                                                          //                   title:
-                                                          //                       "Destination"),
-                                                          //           icon: BitmapDescriptor
-                                                          //               .defaultMarker,
-                                                          //           position: LatLng(
-                                                          //               doc["Latitude"],
-                                                          //               doc["Longitude"])));
-                                                          // },
                                                           icon: Icon(Icons
                                                               .directions_car),
                                                           label: Text("Drive"),
@@ -342,6 +335,17 @@ class _DriveScreenState extends State<DriveScreen> {
               child: Icon(Icons.favorite_border),
             ),
           ),
+          Positioned(
+            right: 8,
+            bottom: 100,
+            child: FloatingActionButton(
+              onPressed: () {},
+              elevation: 3,
+              mini: true,
+              backgroundColor: Colors.white,
+              child: Icon(Icons.hiking),
+            ),
+          ),
         ],
       ),
     );
@@ -380,8 +384,9 @@ class _DriveScreenState extends State<DriveScreen> {
 
         // Update route if destination is set
         if (_destinationPoint != null) {
-          getPolylinePoints()
-              .then((coordinates) => {generatePolylineFromPoints(coordinates)});
+          getPolylinePoints().then((coordinates) => {
+                generatePolylineFromPoints(coordinates),
+              });
         }
       }
     });
@@ -421,5 +426,62 @@ class _DriveScreenState extends State<DriveScreen> {
     setState(() {
       polylines[id] = polyline;
     });
+  }
+
+  Future<List<List<LatLng>>> calculateSlope(List<LatLng> points) async {
+    print(2);
+    // print(points);
+
+    List<List<LatLng>> steepSlopePoints = [];
+
+    for (int i = 0; i < points.length - 1; i++) {
+      print(3);
+      LatLng point1 = points[i];
+      LatLng point2 = points[i + 1];
+
+      double elevation1 =
+          await getElevation(LatLng(point1.latitude, point1.longitude));
+      double elevation2 =
+          await getElevation(LatLng(point2.latitude, point2.longitude));
+      print(elevation1 + elevation2);
+
+      double rise = (elevation2 - elevation1).abs();
+      double run = Geolocator.distanceBetween(
+          point1.latitude, point1.longitude, point2.latitude, point2.longitude);
+
+      // print(elevation1 + elevation2 + rise + run);
+
+      double slopePercent = calculateSlopePercent(rise, run);
+
+      if (slopePercent > 5) {
+        steepSlopePoints.add([point1, point2]);
+      }
+    }
+    return steepSlopePoints;
+  }
+
+  void generateRedPolylinesFromSteepPoints(
+      List<LatLng> polylineCoordinates) async {
+    print(1);
+    List<List<LatLng>> steepSlopePoints =
+        await calculateSlope(polylineCoordinates);
+
+    for (var pointsPair in steepSlopePoints) {
+      LatLng point1 = pointsPair[0];
+      LatLng point2 = pointsPair[1];
+
+      PolylineId id = PolylineId(
+          "red_poly_${point1.latitude}_${point1.longitude}_${point2.latitude}_${point2.longitude}");
+
+      Polyline polyline = Polyline(
+        polylineId: id,
+        color: Colors.red.shade400,
+        points: pointsPair,
+        width: 5,
+      );
+      setState(() {
+        polylines[id] = polyline;
+      });
+    }
   }
 }
