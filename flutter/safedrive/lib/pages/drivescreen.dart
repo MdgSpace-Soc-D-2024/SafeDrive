@@ -8,9 +8,9 @@ import 'package:safedrive/pages/.env.dart';
 import 'package:location/location.dart';
 import 'mapscreen.dart';
 import 'misc.dart';
-import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:vibration/vibration.dart';
 
 class DriveScreen extends StatefulWidget {
   DriveScreen({super.key});
@@ -22,8 +22,10 @@ class DriveScreen extends StatefulWidget {
 }
 
 class _DriveScreenState extends State<DriveScreen> {
-  final LatLng _initialCameraPosition = LatLng(37.4223,
-      -122.0848); // this should store the LatLng of the place where the user was last at before closing the app
+  final LatLng _initialCameraPosition = LatLng(37.4223, -122.0848);
+  // this should store the LatLng of the place where the user was last at before closing the app
+
+  int flag = 0;
 
   LatLng originPoint = LatLng(23.6755568, 86.1604257);
   LatLng destinationPoint = LatLng(23.670, 86.0);
@@ -89,6 +91,7 @@ class _DriveScreenState extends State<DriveScreen> {
   void _addMarker(LatLng pos) async {
     setState(
       () {
+        flag = 0; // This means we need to get steep slope data again
         _destination = Marker(
             markerId: const MarkerId("_destination"),
             infoWindow: const InfoWindow(title: "Destination"),
@@ -335,17 +338,6 @@ class _DriveScreenState extends State<DriveScreen> {
               child: Icon(Icons.favorite_border),
             ),
           ),
-          Positioned(
-            right: 8,
-            bottom: 100,
-            child: FloatingActionButton(
-              onPressed: () {},
-              elevation: 3,
-              mini: true,
-              backgroundColor: Colors.white,
-              child: Icon(Icons.hiking),
-            ),
-          ),
         ],
       ),
     );
@@ -387,6 +379,25 @@ class _DriveScreenState extends State<DriveScreen> {
           getPolylinePoints().then((coordinates) => {
                 generatePolylineFromPoints(coordinates),
               });
+          if (flag == 0) {
+            // I want to run this every time destination is changed or set for the first time
+            LatLng recordStart = _currentP!;
+            LatLng recordEnd = _destinationPoint!;
+            flag = 1;
+
+            getPolylinePointsFromCoordinates(recordStart, recordEnd)
+                .then((polylineCoordinates) {
+              return calculateSlope(polylineCoordinates);
+            }).then((steepSlopePoints) {
+              Map<LatLng, int> startPointsMap =
+                  getStartPointsMap(steepSlopePoints);
+              List<LatLng> startPointsList =
+                  getStartPointsList(steepSlopePoints);
+
+              return vibrateIfSteepSlope(
+                  _currentP!, startPointsMap, startPointsList);
+            });
+          }
         }
       }
     });

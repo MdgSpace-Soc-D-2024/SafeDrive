@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:safedrive/pages/.env.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:location/location.dart';
+import 'package:vibration/vibration.dart';
 
 Future<double> getElevation(LatLng pos) async {
   final String elevationAPIKey = googleAPIKey;
@@ -99,3 +101,51 @@ Future<List<LatLng>> getPolylinePointsFromCoordinates(
   }
   return polylineCoordinates;
 }
+
+// Function to check if marker is inside radius of target coordinates
+void vibrateIfSteepSlope(
+    LatLng marker, Map<LatLng, int> targetStatus, List<LatLng> targets) async {
+  bool hasVibrator =
+      await Vibration.hasVibrator() ?? false; // Handle nullable bool
+  if (hasVibrator) {
+    double radius = 10; // 10 meters
+    for (int i = 0; i < targets.length; i++) {
+      LatLng target = targets[i];
+
+      // Check the distance first
+      double distanceInMeters = Geolocator.distanceBetween(
+          marker.latitude, marker.longitude, target.latitude, target.longitude);
+
+      // If the marker is within the radius, check the target status
+      if (distanceInMeters <= radius) {
+        print("Marker entered the radius for target: $target");
+
+        // Check if the target has not been entered (status = 0) and mark it as entered
+        if (targetStatus[target] == 0) {
+          Vibration.vibrate(duration: 1000); // Vibrate for 1 second
+
+          targetStatus[target] = 1; // Mark this target as entered
+        }
+      }
+    }
+  }
+}
+
+// To be called only once
+Map<LatLng, int> getStartPointsMap(List<List<LatLng>> steepSlopePoints) {
+  Map<LatLng, int> startPointsMap = {};
+  for (int i = 0; i < steepSlopePoints.length; i++) {
+    LatLng target = steepSlopePoints[i][0];
+    startPointsMap[target] = 0;
+  }
+  return startPointsMap;
+} // Goes to isMarkerInsideRadius
+
+List<LatLng> getStartPointsList(List<List<LatLng>> steepSlopePoints) {
+  List<LatLng> startPointsList = [];
+  for (int i = 0; i < steepSlopePoints.length; i++) {
+    LatLng target = steepSlopePoints[i][0];
+    startPointsList.add(target);
+  }
+  return startPointsList;
+} // Goes to isMarkerInsideRadius
