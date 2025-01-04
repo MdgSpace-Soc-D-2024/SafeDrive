@@ -441,7 +441,8 @@ class _DriveScreenState extends State<DriveScreen> {
 
   Future<List<List<LatLng>>> calculateSlope(List<LatLng> points) async {
     print(2);
-    // print(points);
+    // Get the elevations for all points in a single call
+    List<double> elevations = await getElevations(points);
 
     List<List<LatLng>> steepSlopePoints = [];
 
@@ -450,24 +451,24 @@ class _DriveScreenState extends State<DriveScreen> {
       LatLng point1 = points[i];
       LatLng point2 = points[i + 1];
 
-      double elevation1 =
-          await getElevation(LatLng(point1.latitude, point1.longitude));
-      double elevation2 =
-          await getElevation(LatLng(point2.latitude, point2.longitude));
-      print(elevation1 + elevation2);
+      // Get elevations from the previously fetched list
+      double elevation1 = elevations[i];
+      double elevation2 = elevations[i + 1];
+
+      print("Elevation 1: $elevation1, Elevation 2: $elevation2");
 
       double rise = (elevation2 - elevation1).abs();
       double run = Geolocator.distanceBetween(
           point1.latitude, point1.longitude, point2.latitude, point2.longitude);
 
-      // print(elevation1 + elevation2 + rise + run);
-
       double slopePercent = calculateSlopePercent(rise, run);
 
+      // Check if the slope is steep (greater than 5%)
       if (slopePercent > 5) {
         steepSlopePoints.add([point1, point2]);
       }
     }
+
     return steepSlopePoints;
   }
 
@@ -493,6 +494,53 @@ class _DriveScreenState extends State<DriveScreen> {
       setState(() {
         polylines[id] = polyline;
       });
+    }
+  }
+
+  bool _isDialogMounted = false;
+  // Function to check if marker is inside radius of target coordinates
+  void vibrateIfSteepSlope(LatLng marker, Map<LatLng, int> targetStatus,
+      List<LatLng> targets) async {
+    bool hasVibrator =
+        await Vibration.hasVibrator() ?? false; // Handle nullable bool
+    if (hasVibrator) {
+      double radius = 10; // 10 meters
+      for (int i = 0; i < targets.length; i++) {
+        LatLng target = targets[i];
+
+        // Check the distance first
+        double distanceInMeters = Geolocator.distanceBetween(marker.latitude,
+            marker.longitude, target.latitude, target.longitude);
+
+        // If the marker is within the radius, check the target status
+        if (distanceInMeters <= radius) {
+          print("Marker entered the radius for target: $target");
+
+          // Check if the target has not been entered (status = 0) and mark it as entered
+          if (targetStatus[target] == 0) {
+            Vibration.vibrate(duration: 1000); // Vibrate for 1 second
+
+            targetStatus[target] = 1;
+
+            // showDialog(
+            //   context: context,
+            //   barrierDismissible: true,
+            //   builder: (BuildContext context) {
+            //     return AlertDialog(
+            //       title: Text('Warning!'),
+            //       content: Text('You are approaching a steep slope.'),
+            //     );
+            //   },
+            // );
+
+            // // Automatically dismiss the dialog after 4 seconds
+            // Future.delayed(Duration(seconds: 4), () {
+            //   Navigator.of(context).pop(); // Dismiss the dialog
+            //   print('Dialog dismissed after 4 seconds');
+            // });
+          }
+        }
+      }
     }
   }
 }

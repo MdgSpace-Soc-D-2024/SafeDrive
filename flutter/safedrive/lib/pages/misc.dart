@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -9,34 +10,46 @@ import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:location/location.dart';
 import 'package:vibration/vibration.dart';
 
-Future<double> getElevation(LatLng pos) async {
+Future<List<double>> getElevations(List<LatLng> coordinates) async {
   final String elevationAPIKey = googleAPIKey;
+
+  // Construct the locations string for the API (coordinates separated by |)
+  String locations = coordinates
+      .map((coord) =>
+          '${Uri.encodeComponent(coord.latitude.toString())},${Uri.encodeComponent(coord.longitude.toString())}')
+      .join('|'); // Coordinates separated by '|'
+
   final String elevationUrl =
-      'https://maps.googleapis.com/maps/api/elevation/json?locations=${Uri.encodeComponent(pos.latitude.toString())},${Uri.encodeComponent(pos.longitude.toString())}&key=$elevationAPIKey';
+      'https://maps.googleapis.com/maps/api/elevation/json?locations=$locations&key=$elevationAPIKey';
 
   try {
     // Send the GET request to the Google Elevation API
     final response = await http.get(Uri.parse(elevationUrl));
 
     if (response.statusCode == 200) {
-      // Parse the JSON response
       final Map<String, dynamic> data = json.decode(response.body);
 
       if (data['results'] != null && data['results'].isNotEmpty) {
-        // Return the elevation, in meters
-        print("Elevation data found!$data");
-        return data['results'][0]['elevation'];
+        List<double> elevations = [];
+        for (var result in data['results']) {
+          if (result['elevation'] != null) {
+            elevations.add(result['elevation']);
+          } else {
+            elevations.add(0.0);
+          }
+        }
+        return elevations;
       } else {
         print("No elevation data found");
-        return 0.0;
+        return List.generate(coordinates.length, (_) => 0.0);
       }
     } else {
-      print("Status: $response.statusCode");
-      return 1.0;
+      print("Status: ${response.statusCode}");
+      return List.generate(coordinates.length, (_) => 1.0);
     }
   } catch (e) {
     print("Error: $e");
-    return 2.0;
+    return List.generate(coordinates.length, (_) => 2.0);
   }
 }
 
@@ -100,35 +113,6 @@ Future<List<LatLng>> getPolylinePointsFromCoordinates(
     print(result.errorMessage);
   }
   return polylineCoordinates;
-}
-
-// Function to check if marker is inside radius of target coordinates
-void vibrateIfSteepSlope(
-    LatLng marker, Map<LatLng, int> targetStatus, List<LatLng> targets) async {
-  bool hasVibrator =
-      await Vibration.hasVibrator() ?? false; // Handle nullable bool
-  if (hasVibrator) {
-    double radius = 10; // 10 meters
-    for (int i = 0; i < targets.length; i++) {
-      LatLng target = targets[i];
-
-      // Check the distance first
-      double distanceInMeters = Geolocator.distanceBetween(
-          marker.latitude, marker.longitude, target.latitude, target.longitude);
-
-      // If the marker is within the radius, check the target status
-      if (distanceInMeters <= radius) {
-        print("Marker entered the radius for target: $target");
-
-        // Check if the target has not been entered (status = 0) and mark it as entered
-        if (targetStatus[target] == 0) {
-          Vibration.vibrate(duration: 1000); // Vibrate for 1 second
-
-          targetStatus[target] = 1; // Mark this target as entered
-        }
-      }
-    }
-  }
 }
 
 // To be called only once
