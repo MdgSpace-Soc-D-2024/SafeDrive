@@ -1,15 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'mapscreen.dart';
+import 'misc.dart';
+import 'package:safedrive/pages/.env.dart';
+// Google
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
-import 'package:safedrive/pages/.env.dart';
 import 'package:location/location.dart';
-import 'mapscreen.dart';
-import 'misc.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
+// Vibration
 import 'package:vibration/vibration.dart';
 
 class DriveScreen extends StatefulWidget {
@@ -24,6 +26,7 @@ class DriveScreen extends StatefulWidget {
 class _DriveScreenState extends State<DriveScreen> {
   final LatLng _initialCameraPosition = LatLng(37.4223, -122.0848);
   // this should store the LatLng of the place where the user was last at before closing the app
+  // Will setup later using Cloud Firestore
 
   int flag = 0;
 
@@ -82,16 +85,18 @@ class _DriveScreenState extends State<DriveScreen> {
     );
   }
 
-  Marker? _destination;
-  LatLng? _destinationPoint;
-  LatLng? startPoint;
-  LatLng? endPoint;
+  Marker? _destination; // To store the destination marker
+  LatLng? _destinationPoint; // To store the marker's location
+  LatLng? startPoint; // Starting point of the drive
+  LatLng? endPoint; // Destination point of the drive
 
   // Add marker
   void _addMarker(LatLng pos) async {
     setState(
       () {
-        flag = 0; // This means we need to get steep slope data again
+        // To know if we need to get the steep slope data again, because destination has been reset
+        flag = 0;
+        // Destination marker
         _destination = Marker(
             markerId: const MarkerId("_destination"),
             infoWindow: const InfoWindow(title: "Destination"),
@@ -102,8 +107,10 @@ class _DriveScreenState extends State<DriveScreen> {
       },
     );
 
-    startPoint = await getCurrentLocationOnce();
-    endPoint = pos;
+    // Function to get the steep slope every time destination is reset
+    startPoint =
+        await getCurrentLocationOnce(); // Starting point is the current location
+    endPoint = pos; // Ending point is the destination marker
     if (startPoint != null && endPoint != null) {
       List<LatLng> polylineCoordinates =
           await getPolylinePointsFromCoordinates(startPoint!, endPoint!);
@@ -116,6 +123,8 @@ class _DriveScreenState extends State<DriveScreen> {
     mapController?.dispose();
     super.dispose();
   }
+
+// <--------------------- WIDGETS START ------------------------>
 
   @override
   Widget build(BuildContext context) {
@@ -141,7 +150,7 @@ class _DriveScreenState extends State<DriveScreen> {
                     : GoogleMap(
                         // Markers
                         markers: {
-                          // if (_origin != null) _origin!,
+                          // Destination marker
                           if (_destination != null) _destination!,
 
                           // Live location marker
@@ -165,9 +174,8 @@ class _DriveScreenState extends State<DriveScreen> {
                         myLocationButtonEnabled: true,
                         mapType: MapType
                             .normal, // Use normal map type for simplicity
-                        zoomControlsEnabled:
-                            true, // Disable zoom controls if not needed
-                        compassEnabled: true, // Disable compass if not needed
+                        zoomControlsEnabled: true,
+                        compassEnabled: true,
                       ),
               ],
             ),
@@ -175,6 +183,7 @@ class _DriveScreenState extends State<DriveScreen> {
           Positioned(
             right: 8,
             bottom: 500,
+            // Button to move the camera to the destination on being pressed
             child: FloatingActionButton(
               onPressed: () {
                 _destinationPoint != null
@@ -184,7 +193,9 @@ class _DriveScreenState extends State<DriveScreen> {
                           zoom: 14.5,
                         )),
                       )
-                    : () {};
+                    : () {
+                        // Do nothing
+                      };
               },
               mini: true,
               backgroundColor: Colors.white,
@@ -196,12 +207,14 @@ class _DriveScreenState extends State<DriveScreen> {
           ),
           Positioned(
             right: 8,
-            bottom: 150,
+            bottom: 100,
             child: FloatingActionButton(
+              // Favorites button
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(100),
               ),
               onPressed: () {
+                // Shows a dialog with all the favorited locations on being pressed
                 showDialog(
                     context: context,
                     builder: (BuildContext context) {
@@ -343,10 +356,17 @@ class _DriveScreenState extends State<DriveScreen> {
     );
   }
 
-  Future<void> getLocationUpdates() async {
-    bool _serviceEnabled;
-    PermissionStatus _permissionGranted;
+// <-------------------- WIDGETS END ---------------------->
 
+// <-------------------------- ROUTE GENERATION ------------------------------>
+
+  // Gets real time location updates at fixed intervals
+  Future<void> getLocationUpdates() async {
+    bool _serviceEnabled; // Checks if location service is enabled
+    PermissionStatus
+        _permissionGranted; // Checks if permission to get user's live location has been granted
+
+    // For location service
     _serviceEnabled = await _locationController.serviceEnabled();
     if (_serviceEnabled) {
       _serviceEnabled = await _locationController.requestService();
@@ -354,6 +374,7 @@ class _DriveScreenState extends State<DriveScreen> {
       return;
     }
 
+    // For location permissions
     _permissionGranted = await _locationController.hasPermission();
     if (_permissionGranted == PermissionStatus.denied) {
       _permissionGranted = await _locationController.requestPermission();
@@ -363,6 +384,7 @@ class _DriveScreenState extends State<DriveScreen> {
       }
     }
 
+    //  Listener to check when the user's current location changes
     _locationController.onLocationChanged
         .listen((LocationData currentLocation) {
       if (currentLocation.latitude != null &&
@@ -371,7 +393,7 @@ class _DriveScreenState extends State<DriveScreen> {
           _currentP =
               LatLng(currentLocation.latitude!, currentLocation.longitude!);
           _cameraToPosition(_currentP!);
-          print(_currentP);
+          // print(_currentP);
         });
 
         // Update route if destination is set
@@ -386,12 +408,15 @@ class _DriveScreenState extends State<DriveScreen> {
             LatLng recordEnd = _destinationPoint!;
             flag = 1;
 
+            // Getting coordinates of the path -> Getting elevation of all the points on the path -> Checking if the elevation difference between any two points is more than normal
+            // -> Displaying a red line between those coordinates -> Making the device vibrate when the user's current location is in a certain radius of the starting point of those steep elevations
             getPolylinePointsFromCoordinates(recordStart, recordEnd)
                 .then((polylineCoordinates) {
               return calculateSlope(polylineCoordinates);
             }).then((steepSlopePoints) {
               Map<LatLng, int> startPointsMap =
                   getStartPointsMap(steepSlopePoints);
+
               List<LatLng> startPointsList =
                   getStartPointsList(steepSlopePoints);
 
@@ -427,6 +452,7 @@ class _DriveScreenState extends State<DriveScreen> {
     return polylineCoordinates;
   }
 
+  // Generates polylines based on data from Google Directions API
   void generatePolylineFromPoints(List<LatLng> polylineCoordinates) async {
     PolylineId id = PolylineId("poly");
     Polyline polyline = Polyline(
@@ -440,15 +466,20 @@ class _DriveScreenState extends State<DriveScreen> {
     });
   }
 
+// <-------------------------------- ELEVATION ----------------------------------->
+
+  // Gets elevations for all points on the path
   Future<List<List<LatLng>>> calculateSlope(List<LatLng> points) async {
-    print(2);
-    // Get the elevations for all points in a single call
+    // print(2); // For debugging
+
+    // Get the elevations for all points in a single call so as to not make uneccessary requests + its faster
     List<double> elevations = await getElevations(points);
 
+    // List to store the lists of steep points (their starting and ending coordinates)
     List<List<LatLng>> steepSlopePoints = [];
 
     for (int i = 0; i < points.length - 1; i++) {
-      print(3);
+      // print(3); // For debugging
       LatLng point1 = points[i];
       LatLng point2 = points[i + 1];
 
@@ -473,9 +504,10 @@ class _DriveScreenState extends State<DriveScreen> {
     return steepSlopePoints;
   }
 
+  // Generates red lines on the Google Map wherever the elevation is steeper than 5%
   void generateRedPolylinesFromSteepPoints(
       List<LatLng> polylineCoordinates) async {
-    print(1);
+    // print(1); // For debugging
     List<List<LatLng>> steepSlopePoints =
         await calculateSlope(polylineCoordinates);
 
@@ -498,37 +530,6 @@ class _DriveScreenState extends State<DriveScreen> {
     }
   }
 
-  void generateBluePolylinesFromSharpTurns(List<LatLng> polylineCoordinates) {
-    print("Starting sharp turn polyline generation");
-
-    // Detect sharp turns
-    List<List<LatLng>> sharpTurnPoints =
-        TurnDetector().detectTurns(polylineCoordinates);
-    print(sharpTurnPoints);
-
-    // Iterate through each segment of sharp turns
-    for (List<LatLng> segment in sharpTurnPoints) {
-      // Define a unique id for the polyline (using string directly for PolylineId)
-      PolylineId id =
-          PolylineId('sharp_turn_${sharpTurnPoints.indexOf(segment)}');
-
-      // Create the polyline with the segment points
-      Polyline bluePolyline = Polyline(
-        polylineId: id,
-        color: Colors.blue.shade400, // Blue color for the polyline
-        points: segment,
-        width: 5, // Polyline width
-      );
-
-      // Add the polyline to the state
-      setState(() {
-        polylines[id] = bluePolyline; // Make sure the polylines map exists
-        print("Added blue polyline from sharp turn segment");
-      });
-    }
-  }
-
-  bool _isDialogMounted = false;
   // Function to check if marker is inside radius of target coordinates
   void vibrateIfSteepSlope(LatLng marker, Map<LatLng, int> targetStatus,
       List<LatLng> targets) async {
@@ -553,6 +554,8 @@ class _DriveScreenState extends State<DriveScreen> {
 
             targetStatus[target] = 1;
 
+// The warning dialog caused errors thats why its commented out
+
             // showDialog(
             //   context: context,
             //   barrierDismissible: true,
@@ -572,6 +575,34 @@ class _DriveScreenState extends State<DriveScreen> {
           }
         }
       }
+    }
+  }
+
+// <----------------------------------- SHARP TURNS ------------------------------------------>
+
+  void generateBluePolylinesFromSharpTurns(List<LatLng> polylineCoordinates) {
+    print("Starting sharp turn polyline generation"); // For debugging
+
+    // Detect sharp turns
+    List<List<LatLng>> sharpTurnPoints =
+        TurnDetector().detectTurns(polylineCoordinates);
+    print(sharpTurnPoints);
+
+    for (List<LatLng> segment in sharpTurnPoints) {
+      PolylineId id =
+          PolylineId('sharp_turn_${sharpTurnPoints.indexOf(segment)}');
+
+      Polyline bluePolyline = Polyline(
+        polylineId: id,
+        color: Colors.blue.shade400,
+        points: segment,
+        width: 5,
+      );
+
+      setState(() {
+        polylines[id] = bluePolyline;
+        print("Added blue polyline from sharp turn segment");
+      });
     }
   }
 }

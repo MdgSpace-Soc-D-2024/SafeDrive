@@ -1,21 +1,23 @@
 import 'dart:convert';
+import 'misc.dart';
+import 'drivescreen.dart';
+import 'package:safedrive/main.dart';
+import 'favoritespage.dart';
+import 'package:safedrive/pages/.env.dart';
+import 'package:uuid/uuid.dart';
+// Google
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
-import 'package:safedrive/pages/.env.dart';
+// Requests
 import 'package:http/http.dart' as http;
-import 'package:uuid/uuid.dart';
-import 'package:provider/provider.dart';
-
-import 'favoritespage.dart';
-import 'drivescreen.dart';
-import 'package:safedrive/main.dart';
 
 LatLng driveScreenDestination = LatLng(0, 0);
 
+// Wanted to use this so that the user could click on "Drive" in favorites and be led to Drive Screen but it didn't work unfortunately -- will fix later
 void importToDriveScreen(LatLng coordinates) {
   driveScreenDestination = coordinates;
 }
@@ -24,8 +26,8 @@ class MapScreen extends StatefulWidget {
   const MapScreen({super.key});
 
   // Locations
+  // Will use Cloud Firebase to record the last location User was at and make that the initial location on the Google Maps
   final LatLng initialLocation = _pGooglePlex;
-  // final LatLng _initialCameraPosition = LatLng(37.4223, -122.0848);
   static const LatLng _pGooglePlex = LatLng(37.4223, -122.0848);
 
   @override
@@ -47,6 +49,7 @@ class _MapScreenState extends State<MapScreen> {
     super.initState();
     _initializeMapRenderer();
 
+    // For search bar
     textEditingController.addListener(() {
       onChange();
     });
@@ -62,6 +65,7 @@ class _MapScreenState extends State<MapScreen> {
     getSuggestion(textEditingController.text);
   }
 
+  // Making requests
   void getSuggestion(String input) async {
     String kPLACES_API_KEY = googleAPIKey;
     String baseURL =
@@ -70,9 +74,9 @@ class _MapScreenState extends State<MapScreen> {
         '$baseURL?input=$input&key=$kPLACES_API_KEY&sessiontoken=$_sessionToken';
 
     var response = await http.get(Uri.parse(request));
-    var data = response.body.toString();
+    // var data = response.body.toString();
+    // print('data');
 
-    print('data');
     if (response.statusCode == 200) {
       setState(() {
         _placesList = jsonDecode(response.body.toString())['predictions'];
@@ -83,7 +87,7 @@ class _MapScreenState extends State<MapScreen> {
   }
 
   bool _isListViewVisible =
-      false; // Boolean to track if the ListView should be visible
+      false; // Boolean to track if the search results should be visible so as to not block the view of Google Maps
   TextEditingController searchBarEditingController = TextEditingController();
 
   // Used to toggle the visibility of suggestions
@@ -93,7 +97,7 @@ class _MapScreenState extends State<MapScreen> {
     });
   }
 
-  // Checks if our platform is Android and uses that to improve performance
+  // Checks if our platform is Android to improve performance
   void _initializeMapRenderer() {
     final GoogleMapsFlutterPlatform mapsImplementation =
         GoogleMapsFlutterPlatform.instance;
@@ -118,10 +122,10 @@ class _MapScreenState extends State<MapScreen> {
     ));
   }
 
-  Marker? _chosenLocation;
-  LatLng? _chosenLocationLatLng;
+  Marker? _chosenLocation; // To store the marker
+  LatLng? _chosenLocationLatLng; // To store the marker's location
 
-  // Add marker FUNCTION
+  // Adding a marker
   void _addMarker(LatLng pos) async {
     setState(
       () {
@@ -131,6 +135,7 @@ class _MapScreenState extends State<MapScreen> {
             icon: BitmapDescriptor.defaultMarker,
             position: pos,
             onTap: () async {
+              // Asks if the user wants to add this location to the favorites
               showDialog(
                   context: context,
                   builder: (BuildContext context) {
@@ -186,6 +191,7 @@ class _MapScreenState extends State<MapScreen> {
               children: [
                 GestureDetector(
                   onTap: _toggleListViewVisibility,
+                  // Google Maps
                   child: GoogleMap(
                     markers: {
                       if (_chosenLocation != null) _chosenLocation!,
@@ -200,9 +206,8 @@ class _MapScreenState extends State<MapScreen> {
                     myLocationButtonEnabled: true,
                     mapType:
                         MapType.normal, // Use normal map type for simplicity
-                    zoomControlsEnabled:
-                        true, // Disable zoom controls if not needed
-                    compassEnabled: true, // Disable compass if not needed
+                    zoomControlsEnabled: true,
+                    compassEnabled: true,
                     padding: EdgeInsets.only(
                       top: 50,
                       bottom: 0,
@@ -218,6 +223,7 @@ class _MapScreenState extends State<MapScreen> {
                 decoration: BoxDecoration(
                   color: Colors.white70,
                 ),
+                // Search Bar
                 child: TextFormField(
                   controller: textEditingController,
                   decoration: InputDecoration(
@@ -226,9 +232,11 @@ class _MapScreenState extends State<MapScreen> {
                       contentPadding: EdgeInsets.fromLTRB(10, 10, 10, 10),
                       prefixIcon: Icon(Icons.search)),
                   onTap: _toggleListViewVisibility,
+// Toggles the suggestions' invisibility on tapping the search bar so that the map can be accessed with ease
                 ),
               ),
               _isListViewVisible && _placesList.length > 0
+// The list is visible only if its visibility is toggled on and the suggestions generated by Google Places API is not empty
                   ? Flexible(
                       child: Container(
                         height: 300,
@@ -245,7 +253,7 @@ class _MapScreenState extends State<MapScreen> {
                                   // print(locations.last.latitude);
                                   // print(locations.last.longitude);
 
-                                  // Animating camera to given location when tapped on
+                                  // Moves the camera to the tapped on location
                                   LatLng locationsLatLng = LatLng(
                                       locations.last.latitude,
                                       locations.last.longitude);
@@ -253,9 +261,8 @@ class _MapScreenState extends State<MapScreen> {
                                   mapController?.animateCamera(
                                     CameraUpdate.newCameraPosition(
                                       CameraPosition(
-                                        target:
-                                            locationsLatLng, // Safely access _currentLocation
-                                        zoom: 15.0, // Set the zoom level to 15
+                                        target: locationsLatLng,
+                                        zoom: 15.0,
                                       ),
                                     ),
                                   );
@@ -271,6 +278,7 @@ class _MapScreenState extends State<MapScreen> {
           Positioned(
             right: 8,
             bottom: 100,
+// Button to move the camera to the location marker if we wander off
             child: FloatingActionButton(
               onPressed: () {
                 if (_chosenLocationLatLng != null) {
@@ -351,6 +359,7 @@ class _MapScreenState extends State<MapScreen> {
                                             var doc =
                                                 snapshot.data!.docs[index];
                                             return GestureDetector(
+// The favorited locations on being tapped lead to the location on Google Maps
                                               onTap: () {
                                                 _addMarker(LatLng(
                                                     doc["Latitude"],
@@ -387,7 +396,10 @@ class _MapScreenState extends State<MapScreen> {
                                                       children: [
                                                         // Drive to
                                                         ElevatedButton.icon(
+// Wanted to make this button open the Drive Screen on being tapped with the location as the marker in it
                                                           onPressed: () {
+                                                            // This didn't work as expected -- Will try to fix later
+
                                                             // Provider.of<
                                                             //             DynamicMarker>(
                                                             //         context,

@@ -1,8 +1,9 @@
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:safedrive/main.dart';
 import 'package:toggle_switch/toggle_switch.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
+// User preferences -- might add more later
 final List<String> preferences = [
   'Show speed',
   'Show sharp turns',
@@ -38,6 +39,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
               ),
+              // Will setup Signing in using Firebase Auth soon
               child: Column(
                 children: [
                   Text(
@@ -79,22 +81,6 @@ class _SettingScreenState extends State<SettingScreen> {
                       Navigator.of(context).pop();
                     },
                     child: Text("Sign Up"),
-                  ),
-                  SizedBox(
-                    height: 10,
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      print("User wants to sign in.");
-                      Navigator.of(context).pop();
-                    },
-                    child: Text(
-                      "Sign In instead",
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 10,
-                      ),
-                    ),
                   ),
                 ],
               ),
