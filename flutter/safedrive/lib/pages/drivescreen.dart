@@ -378,6 +378,7 @@ class _DriveScreenState extends State<DriveScreen> {
         if (_destinationPoint != null) {
           getPolylinePoints().then((coordinates) => {
                 generatePolylineFromPoints(coordinates),
+                generateBluePolylinesFromSharpTurns(coordinates),
               });
           if (flag == 0) {
             // I want to run this every time destination is changed or set for the first time
@@ -430,7 +431,7 @@ class _DriveScreenState extends State<DriveScreen> {
     PolylineId id = PolylineId("poly");
     Polyline polyline = Polyline(
       polylineId: id,
-      color: Colors.blue.shade300,
+      color: Colors.black,
       points: polylineCoordinates,
       width: 8,
     );
@@ -493,6 +494,36 @@ class _DriveScreenState extends State<DriveScreen> {
       );
       setState(() {
         polylines[id] = polyline;
+      });
+    }
+  }
+
+  void generateBluePolylinesFromSharpTurns(List<LatLng> polylineCoordinates) {
+    print("Starting sharp turn polyline generation");
+
+    // Detect sharp turns
+    List<List<LatLng>> sharpTurnPoints =
+        TurnDetector().detectTurns(polylineCoordinates);
+    print(sharpTurnPoints);
+
+    // Iterate through each segment of sharp turns
+    for (List<LatLng> segment in sharpTurnPoints) {
+      // Define a unique id for the polyline (using string directly for PolylineId)
+      PolylineId id =
+          PolylineId('sharp_turn_${sharpTurnPoints.indexOf(segment)}');
+
+      // Create the polyline with the segment points
+      Polyline bluePolyline = Polyline(
+        polylineId: id,
+        color: Colors.blue.shade400, // Blue color for the polyline
+        points: segment,
+        width: 5, // Polyline width
+      );
+
+      // Add the polyline to the state
+      setState(() {
+        polylines[id] = bluePolyline; // Make sure the polylines map exists
+        print("Added blue polyline from sharp turn segment");
       });
     }
   }

@@ -1,14 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
-import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
 import 'package:safedrive/pages/.env.dart';
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:location/location.dart';
-import 'package:vibration/vibration.dart';
+import 'dart:math';
+import 'package:geolocator/geolocator.dart';
 
 Future<List<double>> getElevations(List<LatLng> coordinates) async {
   final String elevationAPIKey = googleAPIKey;
@@ -133,3 +132,101 @@ List<LatLng> getStartPointsList(List<List<LatLng>> steepSlopePoints) {
   }
   return startPointsList;
 } // Goes to isMarkerInsideRadius
+
+// Detecting Sharp Turns
+class TurnDetector {
+  // Function to calculate distance between two points (in meters)
+  double calculateDistance(LatLng point1, LatLng point2) {
+    return Geolocator.distanceBetween(
+        point1.latitude, point1.longitude, point2.latitude, point2.longitude);
+  }
+
+  // Function to calculate angle between three points A, B, C
+  double calculateAngle(LatLng pointA, LatLng pointB, LatLng pointC) {
+    double dx1 = pointA.latitude - pointB.latitude;
+    double dy1 = pointA.longitude - pointB.longitude;
+    double dx2 = pointC.latitude - pointB.latitude;
+    double dy2 = pointC.longitude - pointB.longitude;
+
+    double dotProduct = dx1 * dx2 + dy1 * dy2;
+
+    double mag1 = sqrt(dx1 * dx1 + dy1 * dy1);
+    double mag2 = sqrt(dx2 * dx2 + dy2 * dy2);
+
+    double cosTheta = dotProduct / (mag1 * mag2);
+
+    return acos(cosTheta) * (180 / pi);
+  }
+
+  bool isAngularTurn(
+      LatLng point1, LatLng point2, LatLng point3, double threshold) {
+    double angle = calculateAngle(point1, point2, point3);
+    return angle < threshold;
+  }
+
+  // Function to detect smooth sharp turns (Hairpin turns)
+  // bool isSmoothSharpTurn(
+  //     List<LatLng> points, double distanceThreshold, double angleThreshold) {
+  //   int smallDistanceCount = 0; // Tracking consecutive small distances
+  //   double totalAngleChange =
+  //       0; // Tracking the total angle change between line segments
+
+  //   for (int i = 0; i < points.length - 2; i++) {
+  //     double distance1 = calculateDistance(points[i], points[i + 1]);
+  //     double distance2 = calculateDistance(points[i + 1], points[i + 2]);
+
+  //     if (distance1 < distanceThreshold && distance2 < distanceThreshold) {
+  //       print("This is a smooth yet sharp turn : $points[i]");
+  //       // Calculate the angle between the three points
+  //       double angle = calculateAngle(points[i], points[i + 1], points[i + 2]);
+
+  //       totalAngleChange += angle;
+  //       // print(totalAngleChange);
+
+  //       if (angle > angleThreshold) {
+  //         // print("Angle is greater than the threshold!!!");
+  //         smallDistanceCount++;
+  //       }
+  //     }
+  //   }
+
+  //   // print(smallDistanceCount >= 2);
+  //   print(totalAngleChange);
+  //   print(angleThreshold);
+  //   print(totalAngleChange > angleThreshold);
+  //   return smallDistanceCount >= 2 && totalAngleChange > angleThreshold;
+  // }
+
+  List<List<LatLng>> detectTurns(List<LatLng> coordinates) {
+    List<List<LatLng>> sharpTurnSegments = [];
+
+    // Checking for angular turns
+    for (int i = 0; i < coordinates.length - 2; i++) {
+      bool isAngular = isAngularTurn(
+          coordinates[i], coordinates[i + 1], coordinates[i + 2], 90);
+      if (isAngular) {
+        sharpTurnSegments
+            .add([coordinates[i], coordinates[i + 1], coordinates[i + 2]]);
+        // print(
+        // "Angular sharp turn detected between points ${coordinates[i]}, ${coordinates[i + 1]}, ${coordinates[i + 2]}");
+      }
+    }
+
+    // Checking for smooth sharp turns (hairpin turns)
+    // for (int i = 0; i < coordinates.length - 2; i++) {
+    //   bool isSmoothSharp = isSmoothSharpTurn(
+    //       coordinates.sublist(i, i + 3),
+    //       1000,
+    //       0); // Example thresholds: 3 meters for distance, 45 degrees for angle change
+    //   if (isSmoothSharp) {
+    //     sharpTurnSegments
+    //         .add([coordinates[i], coordinates[i + 1], coordinates[i + 2]]);
+    //     // print(
+    //     // "Smooth sharp turn (hairpin turn) detected between points ${coordinates[i]}, ${coordinates[i + 1]}, ${coordinates[i + 2]}");
+    //   }
+    // }
+
+    // Return the list of sharp turn segments
+    return sharpTurnSegments;
+  }
+}
