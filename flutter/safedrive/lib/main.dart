@@ -66,6 +66,14 @@ class _MyHomePageState extends State<MyHomePage> {
     SettingScreen(),
   ];
 
+  // Function to add delay before switching screen
+  Future<void> _onItemTapped(int index) async {
+    await Future.delayed(Duration(milliseconds: 200));
+    setState(() {
+      _currentIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -77,12 +85,8 @@ class _MyHomePageState extends State<MyHomePage> {
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-        },
-        items: [
+        onTap: _onItemTapped,
+        items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.map),
             label: 'Map',
