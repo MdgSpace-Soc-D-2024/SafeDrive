@@ -119,19 +119,19 @@ double calculateSlopePercent(double rise, double run) {
 }
 
 // To be called only once
-Map<LatLng, int> getStartPointsMap(List<List<LatLng>> steepSlopePoints) {
+Map<LatLng, int> getStartPointsMap(List<List<LatLng>> pointsList) {
   Map<LatLng, int> startPointsMap = {};
-  for (int i = 0; i < steepSlopePoints.length; i++) {
-    LatLng target = steepSlopePoints[i][0];
+  for (int i = 0; i < pointsList.length; i++) {
+    LatLng target = pointsList[i][0];
     startPointsMap[target] = 0;
   }
   return startPointsMap;
 }
 
-List<LatLng> getStartPointsList(List<List<LatLng>> steepSlopePoints) {
+List<LatLng> getStartPointsList(List<List<LatLng>> pointsList) {
   List<LatLng> startPointsList = [];
-  for (int i = 0; i < steepSlopePoints.length; i++) {
-    LatLng target = steepSlopePoints[i][0];
+  for (int i = 0; i < pointsList.length; i++) {
+    LatLng target = pointsList[i][0];
     startPointsList.add(target);
   }
   return startPointsList;

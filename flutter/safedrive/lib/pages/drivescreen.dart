@@ -115,6 +115,14 @@ class _DriveScreenState extends State<DriveScreen> {
       List<LatLng> polylineCoordinates =
           await getPolylinePointsFromCoordinates(startPoint!, endPoint!);
       generateRedPolylinesFromSteepPoints(polylineCoordinates);
+
+      List<List<LatLng>> sharpTurnPoints =
+          TurnDetector().detectTurns(polylineCoordinates);
+      print(sharpTurnPoints);
+
+      Map<LatLng, int> startPointsMap = getStartPointsMap(sharpTurnPoints);
+      List<LatLng> startPointsList = getStartPointsList(sharpTurnPoints);
+      vibrateIfInRadius(startPoint!, startPointsMap, startPointsList);
     }
   }
 
@@ -420,7 +428,7 @@ class _DriveScreenState extends State<DriveScreen> {
               List<LatLng> startPointsList =
                   getStartPointsList(steepSlopePoints);
 
-              return vibrateIfSteepSlope(
+              return vibrateIfInRadius(
                   _currentP!, startPointsMap, startPointsList);
             });
           }
@@ -531,7 +539,7 @@ class _DriveScreenState extends State<DriveScreen> {
   }
 
   // Function to check if marker is inside radius of target coordinates
-  void vibrateIfSteepSlope(LatLng marker, Map<LatLng, int> targetStatus,
+  void vibrateIfInRadius(LatLng marker, Map<LatLng, int> targetStatus,
       List<LatLng> targets) async {
     bool hasVibrator =
         await Vibration.hasVibrator() ?? false; // Handle nullable bool
@@ -580,13 +588,18 @@ class _DriveScreenState extends State<DriveScreen> {
 
 // <----------------------------------- SHARP TURNS ------------------------------------------>
 
-  void generateBluePolylinesFromSharpTurns(List<LatLng> polylineCoordinates) {
+  void generateBluePolylinesFromSharpTurns(
+      List<LatLng> polylineCoordinates) async {
     // print("Starting sharp turn polyline generation"); // For debugging
 
     // Detect sharp turns
     List<List<LatLng>> sharpTurnPoints =
         TurnDetector().detectTurns(polylineCoordinates);
     print(sharpTurnPoints);
+
+    Map<LatLng, int> startPointsMap = getStartPointsMap(sharpTurnPoints);
+
+    List<LatLng> startPointsList = getStartPointsList(sharpTurnPoints);
 
     for (List<LatLng> segment in sharpTurnPoints) {
       PolylineId id =
