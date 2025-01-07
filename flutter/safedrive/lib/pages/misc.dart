@@ -171,37 +171,43 @@ class TurnDetector {
 // The following function doesn't work as intended yet -- working on fixing it currently
 
   // Function to detect smooth sharp turns (Hairpin turns)
-  // bool isSmoothSharpTurn(
-  //     List<LatLng> points, double distanceThreshold, double angleThreshold) {
-  //   int smallDistanceCount = 0; // Tracking consecutive small distances
-  //   double totalAngleChange =
-  //       0; // Tracking the total angle change between line segments
+  bool isSmoothSharpTurn(
+      List<LatLng> points, double distanceThreshold, double angleThreshold) {
+    print(points);
+    int smallDistanceCount = 0;
+    // Tracking consecutive small distances
+    double totalAngleChange = 0;
+    // Tracking the total angle change between line segments
 
-  //   for (int i = 0; i < points.length - 2; i++) {
-  //     double distance1 = calculateDistance(points[i], points[i + 1]);
-  //     double distance2 = calculateDistance(points[i + 1], points[i + 2]);
+    for (int i = 0; i < points.length - 2; i++) {
+      print("This loop has run $i times");
+      double distance1 = calculateDistance(points[i], points[i + 1]);
+      double distance2 = calculateDistance(points[i + 1], points[i + 2]);
+      print("$distance1 $distance2 && $distanceThreshold");
 
-  //     if (distance1 < distanceThreshold && distance2 < distanceThreshold) {
-  //       print("This is a smooth yet sharp turn : $points[i]");
-  //       // Calculate the angle between the three points
-  //       double angle = calculateAngle(points[i], points[i + 1], points[i + 2]);
+      if (distance1 < distanceThreshold && distance2 < distanceThreshold) {
+        // print("This is a smooth yet sharp turn : $points[i]");
+        // Calculate the angle between the three points
+        double angle = calculateAngle(points[i], points[i + 1], points[i + 2]);
 
-  //       totalAngleChange += angle;
-  //       // print(totalAngleChange);
+        totalAngleChange += angle;
+        // print(totalAngleChange);
 
-  //       if (angle > angleThreshold) {
-  //         // print("Angle is greater than the threshold!!!");
-  //         smallDistanceCount++;
-  //       }
-  //     }
-  //   }
+        if (angle > angleThreshold) {
+          // print("Angle is greater than the threshold!!!");
+          smallDistanceCount++;
+          print(smallDistanceCount);
+        }
+      }
+    }
 
-  //   // print(smallDistanceCount >= 2);
-  //   print(totalAngleChange);
-  //   print(angleThreshold);
-  //   print(totalAngleChange > angleThreshold);
-  //   return smallDistanceCount >= 2 && totalAngleChange > angleThreshold;
-  // }
+    // print(smallDistanceCount >= 2);
+    print(totalAngleChange);
+    // print(angleThreshold);
+    print(smallDistanceCount >= 2);
+    // print(totalAngleChange > angleThreshold);
+    return smallDistanceCount >= 2 && totalAngleChange > angleThreshold;
+  }
 
   List<List<LatLng>> detectTurns(List<LatLng> coordinates) {
     List<List<LatLng>> sharpTurnSegments = [];
@@ -218,21 +224,23 @@ class TurnDetector {
       }
     }
 
-    // Checking for smooth sharp turns (hairpin turns)
-    // for (int i = 0; i < coordinates.length - 2; i++) {
-    //   bool isSmoothSharp = isSmoothSharpTurn(
-    //       coordinates.sublist(i, i + 3),
-    //       1000,
-    //       0); // Example thresholds: 3 meters for distance, 45 degrees for angle change
-    //   if (isSmoothSharp) {
-    //     sharpTurnSegments
-    //         .add([coordinates[i], coordinates[i + 1], coordinates[i + 2]]);
-    //     // print(
-    //     // "Smooth sharp turn (hairpin turn) detected between points ${coordinates[i]}, ${coordinates[i + 1]}, ${coordinates[i + 2]}");
-    //   }
-    // }
+    //   // Checking for smooth sharp turns (hairpin turns)
+    for (int i = 0; i < coordinates.length - 3; i++) {
+      bool isSmoothSharp =
+          isSmoothSharpTurn(coordinates.sublist(i, i + 4), 10, 0);
+      print(isSmoothSharp);
+      // Example thresholds: 10 meters for distance, 0 degrees for angle change
+      if (isSmoothSharp) {
+        sharpTurnSegments
+            .add([coordinates[i], coordinates[i + 1], coordinates[i + 2]]);
+        print("Look here!");
+        print(sharpTurnSegments);
+        // print(
+        // "Smooth sharp turn (hairpin turn) detected between points ${coordinates[i]}, ${coordinates[i + 1]}, ${coordinates[i + 2]}");
+      }
+    }
 
-    // Return the list of sharp turn segments
+    //   // Return the list of sharp turn segments
     return sharpTurnSegments;
   }
 }

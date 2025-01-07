@@ -68,7 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   // Function to add delay before switching screen
   Future<void> _onItemTapped(int index) async {
-    await Future.delayed(Duration(milliseconds: 200));
+    // await Future.delayed(Duration(milliseconds: 200));
     setState(() {
       _currentIndex = index;
     });

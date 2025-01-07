@@ -487,7 +487,7 @@ class _DriveScreenState extends State<DriveScreen> {
       double elevation1 = elevations[i];
       double elevation2 = elevations[i + 1];
 
-      print("Elevation 1: $elevation1, Elevation 2: $elevation2");
+      // print("Elevation 1: $elevation1, Elevation 2: $elevation2");
 
       double rise = (elevation2 - elevation1).abs();
       double run = Geolocator.distanceBetween(
@@ -581,7 +581,7 @@ class _DriveScreenState extends State<DriveScreen> {
 // <----------------------------------- SHARP TURNS ------------------------------------------>
 
   void generateBluePolylinesFromSharpTurns(List<LatLng> polylineCoordinates) {
-    print("Starting sharp turn polyline generation"); // For debugging
+    // print("Starting sharp turn polyline generation"); // For debugging
 
     // Detect sharp turns
     List<List<LatLng>> sharpTurnPoints =
@@ -601,7 +601,7 @@ class _DriveScreenState extends State<DriveScreen> {
 
       setState(() {
         polylines[id] = bluePolyline;
-        print("Added blue polyline from sharp turn segment");
+        // print("Added blue polyline from sharp turn segment");
       });
     }
   }

@@ -10,6 +10,39 @@ final List<String> preferences = [
   'Show heavy inclination',
 ];
 
+// <------------------ FIREBASE AUTH --------------------->
+class Auth {
+  final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
+
+  User? get currentUser => _firebaseAuth.currentUser;
+
+  Stream<User?> get authStateChanges => _firebaseAuth.authStateChanges();
+
+  Future<void> signInWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    await _firebaseAuth.signInWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  Future<void> createUserWithEmailAndPassword({
+    required String email,
+    required String password,
+  }) async {
+    await _firebaseAuth.createUserWithEmailAndPassword(
+      email: email,
+      password: password,
+    );
+  }
+
+  Future<void> signOut() async {
+    await _firebaseAuth.signOut();
+  }
+}
+
 class SettingScreen extends StatefulWidget {
   const SettingScreen({super.key});
 
@@ -20,7 +53,88 @@ class SettingScreen extends StatefulWidget {
 class _SettingScreenState extends State<SettingScreen> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
-  final usernameController = TextEditingController();
+
+  // Firebase Authorization
+  final User? user = Auth().currentUser;
+
+  Future<void> signOut() async {
+    await Auth().signOut();
+  }
+
+  Widget _userUid() {
+    return Text(user?.email ?? "User email");
+  }
+
+  Widget _signOutButton() {
+    return ElevatedButton(
+      onPressed: signOut,
+      child: const Text("Sign Out"),
+    );
+  }
+
+  String? errorMessage = "";
+  bool isLogin = true;
+
+  Future<void> signInWithEmailAndPassword() async {
+    try {
+      await Auth().signInWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text,
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        errorMessage = e.message;
+      });
+    }
+  }
+
+  Future<void> createUserWithEmailAndPassword() async {
+    try {
+      await Auth().createUserWithEmailAndPassword(
+        email: emailController.text,
+        password: passwordController.text,
+      );
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        errorMessage = e.message;
+      });
+    }
+  }
+
+  Widget _entryField(
+    String title,
+    TextEditingController controller,
+  ) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(
+        labelText: title,
+      ),
+    );
+  }
+
+  Widget _errorString() {
+    return Text(errorMessage == "" ? "" : "$errorMessage");
+  }
+
+  Widget _submitButton() {
+    return ElevatedButton(
+      onPressed:
+          isLogin ? signInWithEmailAndPassword : createUserWithEmailAndPassword,
+      child: Text(isLogin ? "Login" : "Register"),
+    );
+  }
+
+  Widget _loginOrRegisterButton() {
+    return TextButton(
+      onPressed: () {
+        setState(() {
+          isLogin = !isLogin;
+        });
+      },
+      child: Text(isLogin ? "Register Instead" : "Login Instead"),
+    );
+  }
 
   // Sign Up Dialog
   void _showSignUpDialog(BuildContext context) {
@@ -33,7 +147,7 @@ class _SettingScreenState extends State<SettingScreen> {
           child: Center(
             child: Container(
               width: 300,
-              height: 370,
+              height: 300,
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -41,47 +155,14 @@ class _SettingScreenState extends State<SettingScreen> {
               ),
               // Will setup Signing in using Firebase Auth soon
               child: Column(
-                children: [
-                  Text(
-                    "Sign Up",
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  SizedBox(
-                    height: 20,
-                  ),
-                  TextField(
-                    controller: emailController,
-                    decoration: InputDecoration(
-                      label: Text("Email"),
-                    ),
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  TextField(
-                    controller: usernameController,
-                    decoration: InputDecoration(
-                      label: Text("Username"),
-                    ),
-                  ),
-                  TextField(
-                    controller: passwordController,
-                    decoration: InputDecoration(
-                      label: Text("Password"),
-                    ),
-                    obscureText: true,
-                  ),
-                  SizedBox(
-                    height: 20,
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      await createUserWithEmailAndPassword();
-                      Navigator.of(context).pop();
-                    },
-                    child: Text("Sign Up"),
-                  ),
+                crossAxisAlignment: CrossAxisAlignment.center,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: <Widget>[
+                  _entryField("Email", emailController),
+                  _entryField("Password", passwordController),
+                  _errorString(),
+                  _submitButton(),
+                  _loginOrRegisterButton(),
                 ],
               ),
             ),
@@ -89,19 +170,6 @@ class _SettingScreenState extends State<SettingScreen> {
         );
       },
     );
-  }
-
-  Future<void> createUserWithEmailAndPassword() async {
-    try {
-      final userCredential =
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: emailController.text.trim(),
-        password: passwordController.text.trim(),
-      );
-      print(userCredential);
-    } catch (e) {
-      print(e.toString());
-    }
   }
 
   @override
