@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'mapscreen.dart';
 import 'misc.dart';
+import 'settingscreen.dart';
 import 'package:safedrive/pages/.env.dart';
 // Google
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -108,21 +109,23 @@ class _DriveScreenState extends State<DriveScreen> {
     );
 
     // Function to get the steep slope every time destination is reset
-    startPoint =
-        await getCurrentLocationOnce(); // Starting point is the current location
-    endPoint = pos; // Ending point is the destination marker
-    if (startPoint != null && endPoint != null) {
-      List<LatLng> polylineCoordinates =
-          await getPolylinePointsFromCoordinates(startPoint!, endPoint!);
-      generateRedPolylinesFromSteepPoints(polylineCoordinates);
+    if (displaySteepSlope == 0) {
+      startPoint =
+          await getCurrentLocationOnce(); // Starting point is the current location
+      endPoint = pos; // Ending point is the destination marker
+      if (startPoint != null && endPoint != null) {
+        List<LatLng> polylineCoordinates =
+            await getPolylinePointsFromCoordinates(startPoint!, endPoint!);
+        generateRedPolylinesFromSteepPoints(polylineCoordinates);
 
-      List<List<LatLng>> sharpTurnPoints =
-          TurnDetector().detectTurns(polylineCoordinates);
-      print(sharpTurnPoints);
+        List<List<LatLng>> sharpTurnPoints =
+            TurnDetector().detectTurns(polylineCoordinates);
+        print(sharpTurnPoints);
 
-      Map<LatLng, int> startPointsMap = getStartPointsMap(sharpTurnPoints);
-      List<LatLng> startPointsList = getStartPointsList(sharpTurnPoints);
-      vibrateIfInRadius(startPoint!, startPointsMap, startPointsList);
+        Map<LatLng, int> startPointsMap = getStartPointsMap(sharpTurnPoints);
+        List<LatLng> startPointsList = getStartPointsList(sharpTurnPoints);
+        vibrateIfInRadius(startPoint!, startPointsMap, startPointsList);
+      }
     }
   }
 
@@ -418,18 +421,21 @@ class _DriveScreenState extends State<DriveScreen> {
 
             // Getting coordinates of the path -> Getting elevation of all the points on the path -> Checking if the elevation difference between any two points is more than normal
             // -> Displaying a red line between those coordinates -> Making the device vibrate when the user's current location is in a certain radius of the starting point of those steep elevations
+
             getPolylinePointsFromCoordinates(recordStart, recordEnd)
                 .then((polylineCoordinates) {
               return calculateSlope(polylineCoordinates);
             }).then((steepSlopePoints) {
-              Map<LatLng, int> startPointsMap =
-                  getStartPointsMap(steepSlopePoints);
+              if (displaySteepSlope == 0) {
+                Map<LatLng, int> startPointsMap =
+                    getStartPointsMap(steepSlopePoints);
 
-              List<LatLng> startPointsList =
-                  getStartPointsList(steepSlopePoints);
+                List<LatLng> startPointsList =
+                    getStartPointsList(steepSlopePoints);
 
-              return vibrateIfInRadius(
-                  _currentP!, startPointsMap, startPointsList);
+                return vibrateIfInRadius(
+                    _currentP!, startPointsMap, startPointsList);
+              }
             });
           }
         }
@@ -478,63 +484,66 @@ class _DriveScreenState extends State<DriveScreen> {
 
   // Gets elevations for all points on the path
   Future<List<List<LatLng>>> calculateSlope(List<LatLng> points) async {
-    // print(2); // For debugging
-
-    // Get the elevations for all points in a single call so as to not make uneccessary requests + its faster
-    List<double> elevations = await getElevations(points);
-
     // List to store the lists of steep points (their starting and ending coordinates)
     List<List<LatLng>> steepSlopePoints = [];
 
-    for (int i = 0; i < points.length - 1; i++) {
-      // print(3); // For debugging
-      LatLng point1 = points[i];
-      LatLng point2 = points[i + 1];
+    if (displaySteepSlope == 0) {
+      // print(2); // For debugging
 
-      // Get elevations from the previously fetched list
-      double elevation1 = elevations[i];
-      double elevation2 = elevations[i + 1];
+      // Get the elevations for all points in a single call so as to not make uneccessary requests + its faster
+      List<double> elevations = await getElevations(points);
 
-      // print("Elevation 1: $elevation1, Elevation 2: $elevation2");
+      for (int i = 0; i < points.length - 1; i++) {
+        // print(3); // For debugging
+        LatLng point1 = points[i];
+        LatLng point2 = points[i + 1];
 
-      double rise = (elevation2 - elevation1).abs();
-      double run = Geolocator.distanceBetween(
-          point1.latitude, point1.longitude, point2.latitude, point2.longitude);
+        // Get elevations from the previously fetched list
+        double elevation1 = elevations[i];
+        double elevation2 = elevations[i + 1];
 
-      double slopePercent = calculateSlopePercent(rise, run);
+        // print("Elevation 1: $elevation1, Elevation 2: $elevation2");
 
-      // Check if the slope is steep (greater than 5%)
-      if (slopePercent > 5) {
-        steepSlopePoints.add([point1, point2]);
+        double rise = (elevation2 - elevation1).abs();
+        double run = Geolocator.distanceBetween(point1.latitude,
+            point1.longitude, point2.latitude, point2.longitude);
+
+        double slopePercent = calculateSlopePercent(rise, run);
+
+        // Check if the slope is steep (greater than 5%)
+        if (slopePercent > 5) {
+          steepSlopePoints.add([point1, point2]);
+        }
       }
     }
-
     return steepSlopePoints;
   }
 
   // Generates red lines on the Google Map wherever the elevation is steeper than 5%
   void generateRedPolylinesFromSteepPoints(
       List<LatLng> polylineCoordinates) async {
-    // print(1); // For debugging
-    List<List<LatLng>> steepSlopePoints =
-        await calculateSlope(polylineCoordinates);
+    if (displaySteepSlope == 0) {
+      // print(1); // For debugging
+      List<List<LatLng>> steepSlopePoints =
+          await calculateSlope(polylineCoordinates);
 
-    for (var pointsPair in steepSlopePoints) {
-      LatLng point1 = pointsPair[0];
-      LatLng point2 = pointsPair[1];
+      for (var pointsPair in steepSlopePoints) {
+        LatLng point1 = pointsPair[0];
+        LatLng point2 = pointsPair[1];
 
-      PolylineId id = PolylineId(
-          "red_poly_${point1.latitude}_${point1.longitude}_${point2.latitude}_${point2.longitude}");
+        PolylineId id = PolylineId(
+            "red_poly_${point1.latitude}_${point1.longitude}_${point2.latitude}_${point2.longitude}");
 
-      Polyline polyline = Polyline(
-        polylineId: id,
-        color: Colors.red.shade400,
-        points: pointsPair,
-        width: 5,
-      );
-      setState(() {
-        polylines[id] = polyline;
-      });
+        Polyline polyline = Polyline(
+          polylineId: id,
+          color: Colors.red.shade400,
+          points: pointsPair,
+          width: 5,
+        );
+        setState(() {
+          polylines[id] = polyline;
+        });
+      }
     }
   }
 
@@ -590,32 +599,34 @@ class _DriveScreenState extends State<DriveScreen> {
 
   void generateBluePolylinesFromSharpTurns(
       List<LatLng> polylineCoordinates) async {
-    // print("Starting sharp turn polyline generation"); // For debugging
+    if (displaySharpTurns == 0) {
+      // print("Starting sharp turn polyline generation"); // For debugging
 
-    // Detect sharp turns
-    List<List<LatLng>> sharpTurnPoints =
-        TurnDetector().detectTurns(polylineCoordinates);
-    print(sharpTurnPoints);
+      // Detect sharp turns
+      List<List<LatLng>> sharpTurnPoints =
+          TurnDetector().detectTurns(polylineCoordinates);
+      print(sharpTurnPoints);
 
-    Map<LatLng, int> startPointsMap = getStartPointsMap(sharpTurnPoints);
+      Map<LatLng, int> startPointsMap = getStartPointsMap(sharpTurnPoints);
 
-    List<LatLng> startPointsList = getStartPointsList(sharpTurnPoints);
+      List<LatLng> startPointsList = getStartPointsList(sharpTurnPoints);
 
-    for (List<LatLng> segment in sharpTurnPoints) {
-      PolylineId id =
-          PolylineId('sharp_turn_${sharpTurnPoints.indexOf(segment)}');
+      for (List<LatLng> segment in sharpTurnPoints) {
+        PolylineId id =
+            PolylineId('sharp_turn_${sharpTurnPoints.indexOf(segment)}');
 
-      Polyline bluePolyline = Polyline(
-        polylineId: id,
-        color: Colors.blue.shade400,
-        points: segment,
-        width: 5,
-      );
+        Polyline bluePolyline = Polyline(
+          polylineId: id,
+          color: Colors.blue.shade400,
+          points: segment,
+          width: 5,
+        );
 
-      setState(() {
-        polylines[id] = bluePolyline;
-        // print("Added blue polyline from sharp turn segment");
-      });
+        setState(() {
+          polylines[id] = bluePolyline;
+          // print("Added blue polyline from sharp turn segment");
+        });
+      }
     }
   }
 }

@@ -3,6 +3,10 @@ import 'package:safedrive/main.dart';
 import 'package:toggle_switch/toggle_switch.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
+int displaySharpTurns = 0;
+int displaySteepSlope = 0;
+int displaySpeed = 0;
+
 // User preferences -- might add more later
 final List<String> preferences = [
   'Show speed',
@@ -68,7 +72,13 @@ class _SettingScreenState extends State<SettingScreen> {
   Widget _signOutButton() {
     return ElevatedButton(
       onPressed: signOut,
-      child: const Text("Sign Out"),
+      child: const Text(
+        "Sign Out",
+        style: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: 20,
+        ),
+      ),
     );
   }
 
@@ -101,6 +111,10 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
+  Widget _title() {
+    return const Text("Firebase Auth");
+  }
+
   Widget _entryField(
     String title,
     TextEditingController controller,
@@ -113,7 +127,7 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  Widget _errorString() {
+  Widget _errorMessage() {
     return Text(errorMessage == "" ? "" : "$errorMessage");
   }
 
@@ -136,7 +150,7 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
-  // Sign Up Dialog
+// <---------------------------- Sign Up Dialog ------------------------------->
   void _showSignUpDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -160,7 +174,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 children: <Widget>[
                   _entryField("Email", emailController),
                   _entryField("Password", passwordController),
-                  _errorString(),
+                  _errorMessage(),
                   _submitButton(),
                   _loginOrRegisterButton(),
                 ],
@@ -172,6 +186,7 @@ class _SettingScreenState extends State<SettingScreen> {
     );
   }
 
+// <------------------------- WIDGETS --------------------------->
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -208,21 +223,26 @@ class _SettingScreenState extends State<SettingScreen> {
                   ),
                 ),
                 Center(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      setState(
-                        () {
-                          _showSignUpDialog(context); // Toggle visibility
-                        },
-                      );
+                  child: StreamBuilder(
+                    stream: Auth().authStateChanges,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData) {
+                        return _signOutButton();
+                      } else {
+                        return ElevatedButton(
+                          onPressed: () {
+                            _showSignUpDialog(context);
+                          },
+                          child: Text(
+                            "Sign up",
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        );
+                      }
                     },
-                    child: Text(
-                      "Sign Up",
-                      style: TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 20,
-                      ),
-                    ),
                   ),
                 ),
               ],
@@ -248,7 +268,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 labels: ['', ''],
                 icons: [Icons.check, Icons.close],
                 onToggle: (index) {
-                  // print('switched to: $index');
+                  displaySpeed = index!;
                 },
               ),
             ),
@@ -269,7 +289,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 // labels: ['', ''],
                 icons: [Icons.check, Icons.close],
                 onToggle: (index) {
-                  // print('switched to: $index');
+                  displaySharpTurns = index!;
                 },
               ),
             ),
@@ -290,7 +310,7 @@ class _SettingScreenState extends State<SettingScreen> {
                 labels: ['', ''],
                 icons: [Icons.check, Icons.close],
                 onToggle: (index) {
-                  // print('switched to: $index');
+                  displaySteepSlope = index!;
                 },
               ),
             )
