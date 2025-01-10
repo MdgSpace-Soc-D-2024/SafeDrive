@@ -14,13 +14,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
 // Vibration
 import 'package:vibration/vibration.dart';
+import "package:shared_preferences/shared_preferences.dart";
 
 int speedInKmPerHour = 0;
+LatLng initialLocation = LatLng(37.4223, -122.0848);
 
 class DriveScreen extends StatefulWidget {
   DriveScreen({super.key});
-
-  final LatLng initialLocation = LatLng(37.4223, -122.0848);
 
   @override
   _DriveScreenState createState() => _DriveScreenState();
@@ -49,6 +49,7 @@ class _DriveScreenState extends State<DriveScreen> {
     _initializeMapRenderer();
     super.initState();
     getLocationUpdates();
+    _loadLastLocation();
   }
 
   // Checks if our platform is Android and uses that to improve performance
@@ -58,6 +59,19 @@ class _DriveScreenState extends State<DriveScreen> {
     if (mapsImplementation is GoogleMapsFlutterAndroid) {
       mapsImplementation.useAndroidViewSurface = true;
     }
+  }
+
+  // Load last location from shared preferences
+  Future<void> _loadLastLocation() async {
+    final prefs = await SharedPreferences.getInstance();
+    double? lat = prefs.getDouble("lastLatitude");
+    double? lon = prefs.getDouble('lastLongitude');
+
+    setState(() {
+      if (lat != null && lon != null) {
+        initialLocation = LatLng(lat, lon);
+      }
+    });
   }
 
   // Called when the map is fully initialized
@@ -70,7 +84,7 @@ class _DriveScreenState extends State<DriveScreen> {
   void _updateCamera(LatLng pos) {
     mapController?.animateCamera(CameraUpdate.newCameraPosition(
       CameraPosition(
-        target: widget.initialLocation,
+        target: initialLocation,
         zoom: 15.0,
       ),
     ));
@@ -180,7 +194,7 @@ class _DriveScreenState extends State<DriveScreen> {
                         onLongPress: _addMarker,
                         onMapCreated: _onMapCreated,
                         initialCameraPosition: CameraPosition(
-                          target: widget.initialLocation,
+                          target: initialLocation,
                           zoom: 15.0,
                         ),
                         myLocationEnabled: true,
@@ -359,6 +373,7 @@ class _DriveScreenState extends State<DriveScreen> {
               child: Icon(Icons.favorite_border),
             ),
           ),
+          // Speed display widget
           if (displaySpeed == 0)
             Positioned(
               bottom: 550,
@@ -390,6 +405,13 @@ class _DriveScreenState extends State<DriveScreen> {
 // <-------------------- WIDGETS END ---------------------->
 
 // <-------------------------- ROUTE GENERATION ------------------------------>
+
+  // Store last location in shared preferences
+  Future<void> _storeLastLocation(double latitude, double longitude) async {
+    final prefs = await SharedPreferences.getInstance();
+    prefs.setDouble("lastLatitude", latitude);
+    prefs.setDouble('lastLongitude', longitude);
+  }
 
   // Gets real time location updates at fixed intervals
   Future<void> getLocationUpdates() async {
@@ -432,6 +454,10 @@ class _DriveScreenState extends State<DriveScreen> {
               LatLng(currentLocation.latitude!, currentLocation.longitude!);
           _cameraToPosition(_currentP!);
           // print(_currentP);
+
+          // Store the current location as last location
+          _storeLastLocation(
+              currentLocation.latitude!, currentLocation.longitude!);
         });
 
         // Update route if destination is set
