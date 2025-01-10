@@ -15,6 +15,8 @@ import 'package:geolocator/geolocator.dart';
 // Vibration
 import 'package:vibration/vibration.dart';
 
+int speedInKmPerHour = 0;
+
 class DriveScreen extends StatefulWidget {
   DriveScreen({super.key});
 
@@ -227,133 +229,128 @@ class _DriveScreenState extends State<DriveScreen> {
               onPressed: () {
                 // Shows a dialog with all the favorited locations on being pressed
                 showDialog(
-                    context: context,
-                    builder: (BuildContext context) {
-                      return Dialog(
-                        backgroundColor: Colors.white,
-                        insetPadding: EdgeInsets.all(10),
-                        child: Container(
-                          height: MediaQuery.of(context).size.height * 0.75,
-                          width: MediaQuery.of(context).size.width * 0.90,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                          ),
-                          child: Column(
-                            children: [
-                              Container(
-                                width: MediaQuery.of(context).size.width * 0.90,
-                                padding: EdgeInsets.all(10),
-                                // decoration: BoxDecoration(
-                                //   border: Border(color: Colors.black),
-                                // ),
-                                child: Text(
-                                  "Favorites",
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 20,
-                                  ),
+                  context: context,
+                  builder: (BuildContext context) {
+                    return Dialog(
+                      backgroundColor: Colors.white,
+                      insetPadding: EdgeInsets.all(10),
+                      child: Container(
+                        height: MediaQuery.of(context).size.height * 0.75,
+                        width: MediaQuery.of(context).size.width * 0.90,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: MediaQuery.of(context).size.width * 0.90,
+                              padding: EdgeInsets.all(10),
+                              // decoration: BoxDecoration(
+                              //   border: Border(color: Colors.black),
+                              // ),
+                              child: Text(
+                                "Favorites",
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
                                 ),
                               ),
-                              FutureBuilder(
-                                future: FirebaseFirestore.instance
-                                    .collection("favoritesList")
-                                    .get(),
-                                builder: (context, snapshot) {
-                                  if (snapshot.connectionState ==
-                                      ConnectionState.waiting) {
-                                    return const Center(
-                                      child: CircularProgressIndicator(),
-                                    );
-                                  }
-                                  if (!snapshot.hasData) {
-                                    return const Text(
-                                        "No favorited locations yet.");
-                                  } else {
-                                    return Expanded(
-                                      child: ListView.builder(
-                                          itemCount:
-                                              snapshot.data!.docs.length - 1,
-                                          itemBuilder: (context, index) {
-                                            var doc =
-                                                snapshot.data!.docs[index];
-                                            return GestureDetector(
-                                              onTap: () {
-                                                _addMarker(LatLng(
-                                                    doc["Latitude"],
-                                                    doc["Longitude"]));
-                                                mapController?.animateCamera(
-                                                  CameraUpdate
-                                                      .newCameraPosition(
-                                                    CameraPosition(
-                                                      target: LatLng(
-                                                          doc["Latitude"],
-                                                          doc["Longitude"]),
-                                                      zoom: 15.0,
+                            ),
+                            FutureBuilder(
+                              future: FirebaseFirestore.instance
+                                  .collection("favoritesList")
+                                  .get(),
+                              builder: (context, snapshot) {
+                                if (snapshot.connectionState ==
+                                    ConnectionState.waiting) {
+                                  return const Center(
+                                    child: CircularProgressIndicator(),
+                                  );
+                                }
+                                if (!snapshot.hasData) {
+                                  return const Text(
+                                      "No favorited locations yet.");
+                                } else {
+                                  return Expanded(
+                                    child: ListView.builder(
+                                        itemCount:
+                                            snapshot.data!.docs.length - 1,
+                                        itemBuilder: (context, index) {
+                                          var doc = snapshot.data!.docs[index];
+                                          return GestureDetector(
+                                            onTap: () {
+                                              _addMarker(LatLng(doc["Latitude"],
+                                                  doc["Longitude"]));
+                                              mapController?.animateCamera(
+                                                CameraUpdate.newCameraPosition(
+                                                  CameraPosition(
+                                                    target: LatLng(
+                                                        doc["Latitude"],
+                                                        doc["Longitude"]),
+                                                    zoom: 15.0,
+                                                  ),
+                                                ),
+                                              );
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: ListTile(
+                                              title: Column(
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    doc['Name'],
+                                                    style: TextStyle(
+                                                      fontSize: 18,
                                                     ),
                                                   ),
-                                                );
-                                                Navigator.of(context).pop();
-                                              },
-                                              child: ListTile(
-                                                title: Column(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
-                                                  children: [
-                                                    Text(
-                                                      doc['Name'],
-                                                      style: TextStyle(
-                                                        fontSize: 18,
+                                                  SizedBox(height: 8),
+                                                  Row(
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment.start,
+                                                    children: [
+                                                      // Drive to
+                                                      ElevatedButton.icon(
+                                                        onPressed: () {},
+                                                        icon: Icon(Icons
+                                                            .directions_car),
+                                                        label: Text("Drive"),
                                                       ),
-                                                    ),
-                                                    SizedBox(height: 8),
-                                                    Row(
-                                                      mainAxisAlignment:
-                                                          MainAxisAlignment
-                                                              .start,
-                                                      children: [
-                                                        // Drive to
-                                                        ElevatedButton.icon(
-                                                          onPressed: () {},
-                                                          icon: Icon(Icons
-                                                              .directions_car),
-                                                          label: Text("Drive"),
-                                                        ),
-                                                        SizedBox(width: 8),
-                                                        // Delete button
-                                                        ElevatedButton.icon(
-                                                          onPressed: () {
-                                                            FirebaseFirestore
-                                                                .instance
-                                                                .collection(
-                                                                    "favoritesList")
-                                                                .doc(snapshot
-                                                                    .data!
-                                                                    .docs[index]
-                                                                    .id)
-                                                                .delete();
-                                                          },
-                                                          icon: Icon(
-                                                              Icons.delete,
-                                                              color:
-                                                                  Colors.red),
-                                                          label: Text("Delete"),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ],
-                                                ),
+                                                      SizedBox(width: 8),
+                                                      // Delete button
+                                                      ElevatedButton.icon(
+                                                        onPressed: () {
+                                                          FirebaseFirestore
+                                                              .instance
+                                                              .collection(
+                                                                  "favoritesList")
+                                                              .doc(snapshot
+                                                                  .data!
+                                                                  .docs[index]
+                                                                  .id)
+                                                              .delete();
+                                                        },
+                                                        icon: Icon(Icons.delete,
+                                                            color: Colors.red),
+                                                        label: Text("Delete"),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ],
                                               ),
-                                            );
-                                          }),
-                                    );
-                                  }
-                                },
-                              )
-                            ],
-                          ),
+                                            ),
+                                          );
+                                        }),
+                                  );
+                                }
+                              },
+                            )
+                          ],
                         ),
-                      );
-                    });
+                      ),
+                    );
+                  },
+                );
               },
               elevation: 3,
               mini: true,
@@ -362,6 +359,29 @@ class _DriveScreenState extends State<DriveScreen> {
               child: Icon(Icons.favorite_border),
             ),
           ),
+          if (displaySpeed == 0)
+            Positioned(
+              bottom: 550,
+              left: 10,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withAlpha(180),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  "${speedInKmPerHour.toStringAsFixed(1)} km/h",
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            )
         ],
       ),
     );
@@ -401,6 +421,13 @@ class _DriveScreenState extends State<DriveScreen> {
       if (currentLocation.latitude != null &&
           currentLocation.longitude != null) {
         setState(() {
+          // Speed
+          if (currentLocation.speed != null) {
+            double speedInMetersPerSecond = currentLocation.speed!;
+            double speedInKmPerHour = speedInMetersPerSecond * 3.6;
+            double speedInMilesPerHour = speedInKmPerHour / 1.689;
+          }
+
           _currentP =
               LatLng(currentLocation.latitude!, currentLocation.longitude!);
           _cameraToPosition(_currentP!);
