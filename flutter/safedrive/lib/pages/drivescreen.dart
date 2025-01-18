@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:safedrive/pages/favoritespage.dart';
 import 'mapscreen.dart';
 import 'misc.dart';
 import 'settingscreen.dart';
 import 'package:safedrive/pages/.env.dart';
+import 'package:safedrive/main.dart';
 // Google
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -15,9 +18,39 @@ import 'package:geolocator/geolocator.dart';
 // Vibration
 import 'package:vibration/vibration.dart';
 import "package:shared_preferences/shared_preferences.dart";
+// Connectivity
+import 'package:connectivity_plus/connectivity_plus.dart';
 
 int speedInKmPerHour = 0;
 LatLng initialLocation = LatLng(37.4223, -122.0848);
+LatLng? lastLocation;
+
+List<LatLng> latlngList = [];
+
+class ConnectivityService extends ChangeNotifier {
+  bool _isOffline = false;
+  bool get isOffline => _isOffline;
+
+  ConnectivityService() {
+    // Listen for connectivity changes
+    Connectivity()
+        .onConnectivityChanged
+        .listen((List<ConnectivityResult> result) {
+      _checkConnectivity(result);
+    });
+  }
+
+  // Check connectivity based on results
+  Future<void> _checkConnectivity(List<ConnectivityResult> result) async {
+    // Check if any of the results are none
+    bool isOffline = result.contains(ConnectivityResult.none);
+
+    if (isOffline != _isOffline) {
+      _isOffline = isOffline;
+      notifyListeners();
+    }
+  }
+}
 
 class DriveScreen extends StatefulWidget {
   DriveScreen({super.key});
@@ -27,6 +60,8 @@ class DriveScreen extends StatefulWidget {
 }
 
 class _DriveScreenState extends State<DriveScreen> {
+  final _connectivityService = ConnectivityService();
+
   final LatLng _initialCameraPosition = LatLng(37.4223, -122.0848);
   // this should store the LatLng of the place where the user was last at before closing the app
   // Will setup later using Cloud Firestore
@@ -66,6 +101,8 @@ class _DriveScreenState extends State<DriveScreen> {
     final prefs = await SharedPreferences.getInstance();
     double? lat = prefs.getDouble("lastLatitude");
     double? lon = prefs.getDouble('lastLongitude');
+
+    latlngList = await DatabaseService().fetchLatLngList();
 
     setState(() {
       if (lat != null && lon != null) {
@@ -396,7 +433,19 @@ class _DriveScreenState extends State<DriveScreen> {
                   ),
                 ),
               ),
-            )
+            ),
+          Center(
+            child: ListenableBuilder(
+                listenable: _connectivityService,
+                builder: (context, child) {
+                  return ElevatedButton(
+                    onPressed: () {
+                      Navigator.pushNamed(context, '/offlinemappage');
+                    },
+                    child: Text("Push"),
+                  );
+                }),
+          )
         ],
       ),
     );
@@ -409,6 +458,7 @@ class _DriveScreenState extends State<DriveScreen> {
   // Store last location in shared preferences
   Future<void> _storeLastLocation(double latitude, double longitude) async {
     final prefs = await SharedPreferences.getInstance();
+    lastLocation = LatLng(latitude, longitude);
     prefs.setDouble("lastLatitude", latitude);
     prefs.setDouble('lastLongitude', longitude);
   }
