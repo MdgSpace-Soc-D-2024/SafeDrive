@@ -1,12 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:safedrive/pages/favoritespage.dart';
 import 'mapscreen.dart';
 import 'misc.dart';
 import 'settingscreen.dart';
 import 'package:safedrive/pages/.env.dart';
-import 'package:safedrive/main.dart';
 // Google
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -53,7 +51,7 @@ class ConnectivityService extends ChangeNotifier {
 }
 
 class DriveScreen extends StatefulWidget {
-  DriveScreen({super.key});
+  const DriveScreen({super.key});
 
   @override
   _DriveScreenState createState() => _DriveScreenState();
@@ -711,7 +709,6 @@ class _DriveScreenState extends State<DriveScreen> {
       print(sharpTurnPoints);
 
       Map<LatLng, int> startPointsMap = getStartPointsMap(sharpTurnPoints);
-
       List<LatLng> startPointsList = getStartPointsList(sharpTurnPoints);
 
       for (List<LatLng> segment in sharpTurnPoints) {

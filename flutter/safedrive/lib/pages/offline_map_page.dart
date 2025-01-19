@@ -1,17 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
-import 'package:flutter_map_tile_caching/flutter_map_tile_caching.dart';
-import 'package:safedrive/pages/drivescreen.dart';
-import 'misc.dart';
 import 'dart:math';
 import 'package:dio/dio.dart';
 import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:location/location.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:flutter_polyline_points/flutter_polyline_points.dart';
-import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -20,24 +14,6 @@ class OfflineMapPage extends StatefulWidget {
 
   @override
   State<OfflineMapPage> createState() => _OfflineMapPageState();
-}
-
-List<LatLngBounds> returnBoundsList(List<LatLng> locations) {
-  List<LatLngBounds> boundsList = [];
-  for (var location in locations) {
-    double minLat = location.latitude - 0.01;
-    double maxLat = location.latitude + 0.01;
-    double minLng = location.longitude - 0.01;
-    double maxLng = location.longitude + 0.01;
-
-    LatLngBounds bounds = LatLngBounds(
-      LatLng(minLat, minLng),
-      LatLng(maxLat, maxLng),
-    );
-    boundsList.add(bounds);
-  }
-
-  return boundsList;
 }
 
 class _OfflineMapPageState extends State<OfflineMapPage> {
@@ -49,10 +25,28 @@ class _OfflineMapPageState extends State<OfflineMapPage> {
   void initState() {
     super.initState();
     getLocationUpdates();
-    _initializeMapStore();
   }
 
-  // Convert lat/lon to tile x/y coordinates
+// Returns bounds based on a list of LatLng
+  List<LatLngBounds> returnBoundsList(List<LatLng> locations) {
+    List<LatLngBounds> boundsList = [];
+    for (var location in locations) {
+      double minLat = location.latitude - 0.01;
+      double maxLat = location.latitude + 0.01;
+      double minLng = location.longitude - 0.01;
+      double maxLng = location.longitude + 0.01;
+
+      LatLngBounds bounds = LatLngBounds(
+        LatLng(minLat, minLng),
+        LatLng(maxLat, maxLng),
+      );
+      boundsList.add(bounds);
+    }
+
+    return boundsList;
+  }
+
+// Converts latitude to tile Y coordinates
   int latToTileY(double lat, int zoom) {
     return ((1 - log(tan(lat * pi / 180) + 1 / cos(lat * pi / 180)) / pi) /
             2 *
@@ -60,6 +54,7 @@ class _OfflineMapPageState extends State<OfflineMapPage> {
         .floor();
   }
 
+// Converts longitude to tile X coordinates
   int lonToTileX(double lon, int zoom) {
     return ((lon + 180) / 360 * pow(2, zoom)).floor();
   }
@@ -67,10 +62,10 @@ class _OfflineMapPageState extends State<OfflineMapPage> {
 // Function to download a single tile
   Future<void> downloadTile(int zoom, int x, int y, String savePath) async {
     String url = 'https://a.tile.openstreetmap.org/$zoom/$x/$y.png';
-    Dio dio = Dio();
+    Dio dio = Dio(); // To perform an http request to OpenStreetMap
 
     try {
-      // Download and save the tile
+      // Downloading the tile
       await dio.download(url, savePath);
       print('Tile $zoom/$x/$y downloaded to $savePath');
     } catch (e) {
@@ -78,7 +73,7 @@ class _OfflineMapPageState extends State<OfflineMapPage> {
     }
   }
 
-// Function to download all tiles for a bounding box at a given zoom level
+// Downloads all tiles for the given bounding boxes
   Future<void> downloadTilesForBoundingBox(
       LatLngBounds bounds, int zoom, String directoryPath) async {
     int minTileX = lonToTileX(bounds.southWest.longitude, zoom);
@@ -86,13 +81,14 @@ class _OfflineMapPageState extends State<OfflineMapPage> {
     int minTileY = latToTileY(bounds.northEast.latitude, zoom);
     int maxTileY = latToTileY(bounds.southWest.latitude, zoom);
 
-    // Ensure the directory exists
+    // Check if directory exists
     final directory = Directory(directoryPath);
     if (!await directory.exists()) {
+      // If directory doesn't exist
       await directory.create(recursive: true);
     }
 
-    // Download each tile in the range
+    // Downloads each tile in the range
     for (int x = minTileX; x <= maxTileX; x++) {
       for (int y = minTileY; y <= maxTileY; y++) {
         String tilePath = '$directoryPath/$zoom/$x/$y.png';
@@ -104,7 +100,7 @@ class _OfflineMapPageState extends State<OfflineMapPage> {
 // Main function to handle download of tiles for all bounding boxes
   Future<void> downloadTilesForFavoritePlaces(
       List<LatLngBounds> boundsList) async {
-    // Get the app's documents directory (where tiles will be stored)
+    // Gets the app's documents directory where tiles will be stored
     final directory = await getApplicationDocumentsDirectory();
     final tileStorageDirectory = '${directory.path}/offline_tiles';
 
@@ -114,16 +110,7 @@ class _OfflineMapPageState extends State<OfflineMapPage> {
     }
   }
 
-  Future<void> _initializeMapStore() async {
-    try {
-      await FMTCStore('mapStore').manage.create();
-    } catch (e) {
-      print("Error initializing map store: $e");
-    }
-  }
-
   // Gets real time location updates at fixed intervals
-  @override
   Future<void> getLocationUpdates() async {
     bool _serviceEnabled; // Checks if location service is enabled
     PermissionStatus

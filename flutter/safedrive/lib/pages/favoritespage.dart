@@ -52,7 +52,7 @@ class FavoritePlace {
   }
 }
 
-const String FavoritePlaceCollectionReference = "favoritesList";
+const String favoritePlaceCollectionReference = "favoritesList";
 
 class DatabaseService {
   final _firestore = FirebaseFirestore.instance;
@@ -61,7 +61,7 @@ class DatabaseService {
 
   DatabaseService() {
     _favoritePlaceRef = _firestore
-        .collection(FavoritePlaceCollectionReference)
+        .collection(favoritePlaceCollectionReference)
         .withConverter<FavoritePlace>(
             fromFirestore: (snapshots, _) => FavoritePlace.fromJson(
                   snapshots.data()!,
@@ -135,7 +135,6 @@ Future<String> changeLatLngToAddress(latitude, longitude) async {
   Placemark placemark = placemarks.first;
   String address =
       '${placemark.street}, ${placemark.locality}, ${placemark.country}';
-
   return address;
 }
 
