@@ -233,7 +233,7 @@ class TurnDetector {
       if (isSmoothSharp) {
         sharpTurnSegments
             .add([coordinates[i], coordinates[i + 1], coordinates[i + 2]]);
-        print("Look here!");
+        // print("Look here!");
         print(sharpTurnSegments);
         // print(
         // "Smooth sharp turn (hairpin turn) detected between points ${coordinates[i]}, ${coordinates[i + 1]}, ${coordinates[i + 2]}");

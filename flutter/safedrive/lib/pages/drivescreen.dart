@@ -1,10 +1,11 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:safedrive/pages/favoritespage.dart';
 import 'mapscreen.dart';
 import 'misc.dart';
 import 'settingscreen.dart';
 import 'package:safedrive/pages/.env.dart';
+import 'offline_map_misc.dart';
+import 'offline_map_page.dart';
 // Google
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -83,6 +84,7 @@ class _DriveScreenState extends State<DriveScreen> {
     super.initState();
     getLocationUpdates();
     _loadLastLocation();
+    downloadTilesForOfflineUse();
   }
 
   // Checks if our platform is Android and uses that to improve performance
@@ -99,8 +101,6 @@ class _DriveScreenState extends State<DriveScreen> {
     final prefs = await SharedPreferences.getInstance();
     double? lat = prefs.getDouble("lastLatitude");
     double? lon = prefs.getDouble('lastLongitude');
-
-    latlngList = await DatabaseService().fetchLatLngList();
 
     setState(() {
       if (lat != null && lon != null) {
@@ -432,18 +432,6 @@ class _DriveScreenState extends State<DriveScreen> {
                 ),
               ),
             ),
-          Center(
-            child: ListenableBuilder(
-                listenable: _connectivityService,
-                builder: (context, child) {
-                  return ElevatedButton(
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/offlinemappage');
-                    },
-                    child: Text("Push"),
-                  );
-                }),
-          )
         ],
       ),
     );
