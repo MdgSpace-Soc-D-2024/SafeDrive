@@ -1,14 +1,17 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:safedrive/main.dart';
+import 'package:safedrive/themes/theme_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
 
 // <------------------ USER PREFERENCES --------------------->
+
 final List preferences = [
   ["Show speed", true],
   ["Show sharp turns", true],
   ["Show heavy inclination", true],
+  ["Dark Mode", true]
 ];
 
 Future<void> savePreference(String key, bool value) async {
@@ -97,6 +100,15 @@ class _SettingScreenState extends State<SettingScreen> {
 
   Widget _signOutButton() {
     return ElevatedButton(
+      style: ButtonStyle(
+        shape: WidgetStateProperty.all(
+          RoundedRectangleBorder(
+            side: BorderSide(
+                color: Colors.grey, width: 1), // Border color and width
+            borderRadius: BorderRadius.circular(20), // Border radius
+          ),
+        ),
+      ),
       onPressed: signOut,
       child: const Text(
         "Sign Out",
@@ -137,9 +149,9 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
-  Widget _title() {
-    return const Text("Firebase Auth");
-  }
+  // Widget _title() {
+  //   return const Text("Firebase Auth");
+  // }
 
   Widget _entryField(
     String title,
@@ -218,172 +230,149 @@ class _SettingScreenState extends State<SettingScreen> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
-        // backgroundColor: darkBlue,
+        backgroundColor: Theme.of(context).colorScheme.surface,
         appBar: AppBar(
           title: Center(
               child: Text(
             'Settings',
             style: TextStyle(
-                fontSize: 20, fontWeight: FontWeight.w600, letterSpacing: 1),
+              fontSize: 20,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.3,
+            ),
           )),
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.indigo[400],
         ),
-        body: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [],
-            ),
-            ListTile(
-              title: Center(
-                child: Text(
-                  'PREFERENCES',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.5,
-                    fontSize: 18,
+        body: Container(
+          margin: const EdgeInsets.symmetric(vertical: 15, horizontal: 0),
+          padding: const EdgeInsets.all(5),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.blueGrey.shade100.withAlpha(40),
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-              ),
-            ),
-
-            // <--------------------- OLD ------------------------->
-            // ListTile(
-            //   leading: Icon(Icons.arrow_drop_down_outlined),
-            //   title: Text('Show speed'),
-            //   trailing: ToggleSwitch(
-            //     customWidths: [50.0, 50.0],
-            //     cornerRadius: 10.0,
-            //     activeBgColors: [
-            //       [Colors.green.shade300],
-            //       [Colors.redAccent]
-            //     ],
-            //     activeFgColor: Colors.white,
-            //     inactiveBgColor: Colors.grey,
-            //     inactiveFgColor: Colors.white,
-            //     totalSwitches: 2,
-            //     labels: ['', ''],
-            //     icons: [Icons.check, Icons.close],
-            //     onToggle: (index) {
-            //       displaySpeed = index!;
-            //     },
-            //   ),
-            // ),
-            // ListTile(
-            //   leading: Icon(Icons.arrow_drop_down_outlined),
-            //   title: Text('Show sharp turns'),
-            //   trailing: ToggleSwitch(
-            //     customWidths: [50.0, 50.0],
-            //     cornerRadius: 10.0,
-            //     activeBgColors: [
-            //       [Colors.green.shade300],
-            //       [Colors.redAccent]
-            //     ],
-            //     activeFgColor: Colors.white,
-            //     inactiveBgColor: Colors.grey,
-            //     inactiveFgColor: Colors.white,
-            //     totalSwitches: 2,
-            //     // labels: ['', ''],
-            //     icons: [Icons.check, Icons.close],
-            //     onToggle: (index) {
-            //       displaySharpTurns = index!;
-            //     },
-            //   ),
-            // ),
-            // ListTile(
-            //   leading: Icon(Icons.arrow_drop_down_outlined),
-            //   title: Text('Show heavy inclinations'),
-            //   trailing: ToggleSwitch(
-            //     customWidths: [50.0, 50.0],
-            //     cornerRadius: 10.0,
-            //     activeBgColors: [
-            //       [Colors.green.shade300],
-            //       [Colors.redAccent]
-            //     ],
-            //     activeFgColor: Colors.white,
-            //     inactiveBgColor: Colors.grey,
-            //     inactiveFgColor: Colors.white,
-            //     totalSwitches: 2,
-            //     labels: ['', ''],
-            //     icons: [Icons.check, Icons.close],
-            //     onToggle: (index) {
-            //       displaySteepSlope = index!;
-            //     },
-            //   ),
-            // ),
-            Expanded(
-              child: ListView.builder(
-                  itemCount: preferences.length,
-                  padding: const EdgeInsets.all(10),
-                  itemBuilder: (context, index) {
-                    return Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: Colors.blueGrey.shade100.withAlpha(40),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        padding:
-                            EdgeInsets.symmetric(vertical: 2, horizontal: 5),
-                        child: ListTile(
-                          textColor: preferences[index][1]
-                              ? Colors.black
-                              : Colors.grey[500],
-                          title: Text(
-                            preferences[index][0],
-                            style: TextStyle(
-                              fontSize: 16,
-                            ),
-                          ),
-                          trailing: CupertinoSwitch(
-                            value: preferences[index][1],
-                            onChanged: (value) {
-                              setState(() {
-                                onPreferenceChanged(index, value);
-                              });
-
-                              print(preferences[index][0] +
-                                  " Changed to " +
-                                  preferences[index][1].toString());
-                            },
-                            activeTrackColor: Colors.indigo[400],
-                          ),
-                        ),
+                  padding: EdgeInsets.symmetric(vertical: 2, horizontal: 5),
+                  child: ListTile(
+                    title: Text(
+                      "Dark mode",
+                      style: TextStyle(
+                        fontSize: 16,
                       ),
-                    );
-                  }),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
-              child: Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(8.0),
-                  child: StreamBuilder(
-                    stream: Auth().authStateChanges,
-                    builder: (context, snapshot) {
-                      if (snapshot.hasData) {
-                        return _signOutButton();
-                      } else {
-                        return ElevatedButton(
-                          onPressed: () {
-                            _showSignUpDialog(context);
-                          },
-                          child: Text(
-                            "Sign up",
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        );
-                      }
-                    },
+                    ),
+                    trailing: CupertinoSwitch(
+                      value: Provider.of<ThemeProvider>(context, listen: false)
+                          .isDarkMode,
+                      onChanged: (value) => {
+                        Provider.of<ThemeProvider>(context, listen: false)
+                            .toggleTheme()
+                      },
+                      activeTrackColor: Colors.black54,
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.start,
+                children: [],
+              ),
+              ListTile(
+                title: Center(
+                  child: Text(
+                    'PREFERENCES',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 1.5,
+                      fontSize: 18,
+                    ),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: ListView.builder(
+                    itemCount: preferences.length - 1,
+                    padding: const EdgeInsets.all(10),
+                    itemBuilder: (context, index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.blueGrey.shade100.withAlpha(40),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          padding:
+                              EdgeInsets.symmetric(vertical: 2, horizontal: 5),
+                          child: ListTile(
+                            title: Text(
+                              preferences[index][0],
+                              style: TextStyle(
+                                color: preferences[index][1]
+                                    ? Theme.of(context)
+                                        .colorScheme
+                                        .inversePrimary
+                                    : Colors.grey[500],
+                                fontSize: 16,
+                              ),
+                            ),
+                            trailing: CupertinoSwitch(
+                              value: preferences[index][1],
+                              onChanged: (value) {
+                                setState(() {
+                                  onPreferenceChanged(index, value);
+                                });
+                              },
+                              activeTrackColor: Colors.indigo[400],
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+              ),
+              Padding(
+                padding:
+                    const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+                child: Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: StreamBuilder(
+                      stream: Auth().authStateChanges,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return _signOutButton();
+                        } else {
+                          return ElevatedButton(
+                            style: ButtonStyle(
+                              shape: WidgetStateProperty.all(
+                                RoundedRectangleBorder(
+                                  side: BorderSide(
+                                      color: Colors.grey,
+                                      width: 1), // Border color and width
+                                  borderRadius: BorderRadius.circular(
+                                      20), // Border radius
+                                ),
+                              ),
+                            ),
+                            onPressed: () {
+                              _showSignUpDialog(context);
+                            },
+                            child: Text(
+                              "Sign up",
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

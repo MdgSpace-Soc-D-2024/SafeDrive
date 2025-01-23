@@ -1,10 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'mapscreen.dart';
-import 'misc.dart';
+import '../models/misc.dart';
 import 'settingscreen.dart';
 import 'package:safedrive/pages/.env.dart';
-import 'offline_map_misc.dart';
+import '../models/offline_map_misc.dart';
 import 'offline_map_page.dart';
 // Google
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
@@ -160,7 +160,7 @@ class _DriveScreenState extends State<DriveScreen> {
     );
 
     // Function to get the steep slope every time destination is reset
-    if (preferences[2][0]) {
+    if (preferences[2][1]) {
       startPoint =
           await getCurrentLocationOnce(); // Starting point is the current location
       endPoint = pos; // Ending point is the destination marker
@@ -261,7 +261,6 @@ class _DriveScreenState extends State<DriveScreen> {
                         };
                 },
                 mini: true,
-                backgroundColor: Colors.white,
                 elevation: 2,
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(5)),
@@ -418,15 +417,15 @@ class _DriveScreenState extends State<DriveScreen> {
             // Speed display widget
             if (preferences[0][1])
               Positioned(
-                top: 20,
-                left: 10,
+                top: 10,
+                left: 60,
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     vertical: 8,
                     horizontal: 16,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.indigo.shade800.withAlpha(150),
+                    color: Theme.of(context).colorScheme.primary.withAlpha(200),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
@@ -493,7 +492,7 @@ class _DriveScreenState extends State<DriveScreen> {
             double speedInKmPerHour = speedInMetersPerSecond * 3.6;
             double speedInMilesPerHour = speedInKmPerHour / 1.689;
           }
-
+          // Current Position
           _currentP =
               LatLng(currentLocation.latitude!, currentLocation.longitude!);
           _cameraToPosition(_currentP!);
@@ -523,7 +522,7 @@ class _DriveScreenState extends State<DriveScreen> {
                 .then((polylineCoordinates) {
               return calculateSlope(polylineCoordinates);
             }).then((steepSlopePoints) {
-              if (preferences[2][0]) {
+              if (preferences[2][1]) {
                 Map<LatLng, int> startPointsMap =
                     getStartPointsMap(steepSlopePoints);
 
@@ -584,7 +583,7 @@ class _DriveScreenState extends State<DriveScreen> {
     // List to store the lists of steep points (their starting and ending coordinates)
     List<List<LatLng>> steepSlopePoints = [];
 
-    if (preferences[2][0]) {
+    if (preferences[2][1]) {
       // print(2); // For debugging
 
       // Get the elevations for all points in a single call so as to not make uneccessary requests + its faster
@@ -619,7 +618,7 @@ class _DriveScreenState extends State<DriveScreen> {
   // Generates red lines on the Google Map wherever the elevation is steeper than 5%
   void generateRedPolylinesFromSteepPoints(
       List<LatLng> polylineCoordinates) async {
-    if (preferences[2][0]) {
+    if (preferences[2][1]) {
       // print(1); // For debugging
       List<List<LatLng>> steepSlopePoints =
           await calculateSlope(polylineCoordinates);

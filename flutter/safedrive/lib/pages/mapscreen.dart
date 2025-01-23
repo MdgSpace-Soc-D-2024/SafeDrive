@@ -1,5 +1,7 @@
 import 'dart:convert';
-import 'misc.dart';
+import 'package:flutter/rendering.dart';
+
+import '../models/misc.dart';
 import 'drivescreen.dart';
 import 'package:safedrive/main.dart';
 import 'favoritespage.dart';
@@ -182,6 +184,7 @@ class _MapScreenState extends State<MapScreen> {
   Widget build(BuildContext context) {
     return SafeArea(
       child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
         body: Stack(
           children: [
             Container(
@@ -221,19 +224,39 @@ class _MapScreenState extends State<MapScreen> {
             Column(
               children: [
                 Container(
+                  margin: EdgeInsets.fromLTRB(5, 0, 5, 0),
                   decoration: BoxDecoration(
-                    color: Colors.white70,
+                    borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(12),
+                        bottomRight: Radius.circular(12)),
+                    color:
+                        Theme.of(context).colorScheme.tertiary.withAlpha(200),
                   ),
                   // Search Bar
                   child: TextFormField(
                     controller: textEditingController,
                     decoration: InputDecoration(
-                        hintText: "Search a place...",
+                        hintText: "Search for a place...",
+                        hintStyle: TextStyle(
+                            // color: Theme.of(context).colorScheme.tertiary,
+                            ),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.fromLTRB(10, 10, 10, 10),
-                        prefixIcon: Icon(Icons.search)),
-                    onTap: _toggleListViewVisibility,
-                    // Toggles the suggestions' invisibility on tapping the search bar so that the map can be accessed with ease
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.fromLTRB(10, 10, 10, 0),
+                        prefixIcon: Icon(
+                          Icons.search,
+                        ),
+                        suffixIcon: GestureDetector(
+                          onTap: _toggleListViewVisibility,
+                          // Toggles the suggestions' invisibility on tapping the search bar so that the map can be accessed with ease,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 30),
+                            child: Icon(
+                              Icons.remove_red_eye,
+                            ),
+                          ),
+                        ),
+                        iconColor: Theme.of(context).colorScheme.primary),
                   ),
                 ),
                 _isListViewVisible && _placesList.length > 0
@@ -241,35 +264,46 @@ class _MapScreenState extends State<MapScreen> {
                     ? Flexible(
                         child: Container(
                           height: 300,
-                          color: Colors.white70,
-                          padding: EdgeInsets.all(10),
+                          padding: EdgeInsets.all(5),
                           child: ListView.builder(
                               itemCount: _placesList.length,
                               itemBuilder: (context, index) {
-                                return ListTile(
-                                  onTap: () async {
-                                    List<Location> locations =
-                                        await locationFromAddress(
-                                            _placesList[index]['description']);
-                                    // print(locations.last.latitude);
-                                    // print(locations.last.longitude);
+                                return Container(
+                                  margin: EdgeInsets.all(1),
+                                  decoration: BoxDecoration(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .tertiary
+                                          .withAlpha(200),
+                                      borderRadius: BorderRadius.circular(10)),
+                                  child: ListTile(
+                                    onTap: () async {
+                                      List<Location> locations =
+                                          await locationFromAddress(
+                                              _placesList[index]
+                                                  ['description']);
+                                      // print(locations.last.latitude);
+                                      // print(locations.last.longitude);
 
-                                    // Moves the camera to the tapped on location
-                                    LatLng locationsLatLng = LatLng(
-                                        locations.last.latitude,
-                                        locations.last.longitude);
-                                    _addMarker(locationsLatLng);
-                                    mapController?.animateCamera(
-                                      CameraUpdate.newCameraPosition(
-                                        CameraPosition(
-                                          target: locationsLatLng,
-                                          zoom: 15.0,
+                                      // Moves the camera to the tapped on location
+                                      LatLng locationsLatLng = LatLng(
+                                          locations.last.latitude,
+                                          locations.last.longitude);
+                                      _addMarker(locationsLatLng);
+                                      mapController?.animateCamera(
+                                        CameraUpdate.newCameraPosition(
+                                          CameraPosition(
+                                            target: locationsLatLng,
+                                            zoom: 15.0,
+                                          ),
                                         ),
-                                      ),
-                                    );
-                                  },
-                                  title:
-                                      Text(_placesList[index]['description']),
+                                      );
+                                    },
+                                    title: Text(
+                                      _placesList[index]['description'],
+                                      style: TextStyle(fontSize: 15),
+                                    ),
+                                  ),
                                 );
                               }),
                         ),
@@ -298,7 +332,6 @@ class _MapScreenState extends State<MapScreen> {
                 },
                 elevation: 3,
                 mini: true,
-                backgroundColor: Colors.white,
                 child: Icon(Icons.center_focus_strong),
               ),
             ),
@@ -314,28 +347,24 @@ class _MapScreenState extends State<MapScreen> {
                       context: context,
                       builder: (BuildContext context) {
                         return Dialog(
-                          backgroundColor: Colors.white,
                           insetPadding: EdgeInsets.all(10),
                           child: Container(
                             height: MediaQuery.of(context).size.height * 0.75,
                             width: MediaQuery.of(context).size.width * 0.90,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                            ),
+                            decoration: BoxDecoration(),
                             child: Column(
                               children: [
                                 Container(
                                   width:
                                       MediaQuery.of(context).size.width * 0.90,
-                                  padding: EdgeInsets.all(10),
-                                  // decoration: BoxDecoration(
-                                  //   border: Border(color: Colors.black),
-                                  // ),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: 50, vertical: 15),
                                   child: Text(
                                     "Favorites",
                                     style: TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 20,
+                                      letterSpacing: 1.3,
                                     ),
                                   ),
                                 ),
@@ -398,39 +427,29 @@ class _MapScreenState extends State<MapScreen> {
                                                             MainAxisAlignment
                                                                 .start,
                                                         children: [
-                                                          // Drive to
-                                                          ElevatedButton.icon(
-                                                            // Wanted to make this button open the Drive Screen on being tapped with the location as the marker in it
-                                                            onPressed: () {
-                                                              // This didn't work as expected -- Will try to fix later
-
-                                                              // Provider.of<
-                                                              //             DynamicMarker>(
-                                                              //         context,
-                                                              //         listen:
-                                                              //             false)
-                                                              //     .updateVariable(Marker(
-                                                              //         markerId:
-                                                              //             const MarkerId(
-                                                              //                 "_destination"),
-                                                              //         infoWindow:
-                                                              //             const InfoWindow(
-                                                              //                 title:
-                                                              //                     "Destination"),
-                                                              //         icon: BitmapDescriptor
-                                                              //             .defaultMarker,
-                                                              //         position: LatLng(
-                                                              //             doc["Latitude"],
-                                                              //             doc["Longitude"])));
-                                                            },
-                                                            icon: Icon(Icons
-                                                                .directions_car),
-                                                            label:
-                                                                Text("Drive"),
-                                                          ),
                                                           SizedBox(width: 8),
                                                           // Delete button
                                                           ElevatedButton.icon(
+                                                            style: ButtonStyle(
+                                                              elevation:
+                                                                  WidgetStateProperty
+                                                                      .all(0),
+                                                              shape:
+                                                                  WidgetStateProperty
+                                                                      .all(
+                                                                RoundedRectangleBorder(
+                                                                  side: BorderSide(
+                                                                      color: Colors
+                                                                          .grey,
+                                                                      width:
+                                                                          1), // Border color and width
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              20), // Border radius
+                                                                ),
+                                                              ),
+                                                            ),
                                                             onPressed: () {
                                                               FirebaseFirestore
                                                                   .instance
@@ -447,8 +466,14 @@ class _MapScreenState extends State<MapScreen> {
                                                                 Icons.delete,
                                                                 color:
                                                                     Colors.red),
-                                                            label:
-                                                                Text("Delete"),
+                                                            label: Text(
+                                                              "Delete",
+                                                              style: TextStyle(
+                                                                  color: Theme.of(
+                                                                          context)
+                                                                      .colorScheme
+                                                                      .inversePrimary),
+                                                            ),
                                                           ),
                                                         ],
                                                       ),
