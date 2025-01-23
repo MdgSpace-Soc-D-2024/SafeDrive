@@ -1,18 +1,30 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:safedrive/main.dart';
-import 'package:toggle_switch/toggle_switch.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-int displaySharpTurns = 0;
-int displaySteepSlope = 0;
-int displaySpeed = 0;
-
-// User preferences -- might add more later
-final List<String> preferences = [
-  'Show speed',
-  'Show sharp turns',
-  'Show heavy inclination',
+// <------------------ USER PREFERENCES --------------------->
+final List preferences = [
+  ["Show speed", true],
+  ["Show sharp turns", true],
+  ["Show heavy inclination", true],
 ];
+
+Future<void> savePreference(String key, bool value) async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  await prefs.setBool(key, value); // Setting the user preference
+}
+
+Future<void> loadPreferences() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  for (var pref in preferences) {
+    String key = pref[0];
+    bool defaultValue = pref[1];
+    bool value = prefs.getBool(key) ?? defaultValue;
+    pref[1] = value;
+  }
+}
 
 // <------------------ FIREBASE AUTH --------------------->
 class Auth {
@@ -55,6 +67,20 @@ class SettingScreen extends StatefulWidget {
 }
 
 class _SettingScreenState extends State<SettingScreen> {
+  @override
+  void initState() {
+    super.initState();
+    loadPreferences();
+  }
+
+  void onPreferenceChanged(int index, bool newValue) {
+    setState(() {
+      String key = preferences[index][0];
+      preferences[index][1] = newValue;
+      savePreference(key, newValue);
+    });
+  }
+
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
@@ -76,7 +102,7 @@ class _SettingScreenState extends State<SettingScreen> {
         "Sign Out",
         style: TextStyle(
           fontWeight: FontWeight.w600,
-          fontSize: 20,
+          fontSize: 16,
         ),
       ),
     );
@@ -161,7 +187,6 @@ class _SettingScreenState extends State<SettingScreen> {
           child: Center(
             child: Container(
               width: 300,
-              height: 300,
               padding: EdgeInsets.all(20),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -171,6 +196,7 @@ class _SettingScreenState extends State<SettingScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: <Widget>[
                   _entryField("Email", emailController),
                   _entryField("Password", passwordController),
@@ -187,42 +213,152 @@ class _SettingScreenState extends State<SettingScreen> {
   }
 
 // <------------------------- WIDGETS --------------------------->
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return SafeArea(
+      child: Scaffold(
         // backgroundColor: darkBlue,
         appBar: AppBar(
           title: Center(
               child: Text(
             'Settings',
             style: TextStyle(
-              fontSize: 20,
-            ),
+                fontSize: 20, fontWeight: FontWeight.w600, letterSpacing: 1),
           )),
-          backgroundColor: darkBlue,
-          foregroundColor: lightGray,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.indigo[400],
         ),
-        body: ListView(
+        body: Column(
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                Container(
-                  padding: EdgeInsets.all(10),
-                  margin: EdgeInsets.all(20.0),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: Colors.black, // Border color (grey)
-                      width: 3.0, // Border width
-                    ),
-                    borderRadius: BorderRadius.circular(100.0),
-                  ),
-                  child: Icon(
-                    Icons.person,
-                    size: 64,
+              children: [],
+            ),
+            ListTile(
+              title: Center(
+                child: Text(
+                  'PREFERENCES',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                    fontSize: 18,
                   ),
                 ),
-                Center(
+              ),
+            ),
+
+            // <--------------------- OLD ------------------------->
+            // ListTile(
+            //   leading: Icon(Icons.arrow_drop_down_outlined),
+            //   title: Text('Show speed'),
+            //   trailing: ToggleSwitch(
+            //     customWidths: [50.0, 50.0],
+            //     cornerRadius: 10.0,
+            //     activeBgColors: [
+            //       [Colors.green.shade300],
+            //       [Colors.redAccent]
+            //     ],
+            //     activeFgColor: Colors.white,
+            //     inactiveBgColor: Colors.grey,
+            //     inactiveFgColor: Colors.white,
+            //     totalSwitches: 2,
+            //     labels: ['', ''],
+            //     icons: [Icons.check, Icons.close],
+            //     onToggle: (index) {
+            //       displaySpeed = index!;
+            //     },
+            //   ),
+            // ),
+            // ListTile(
+            //   leading: Icon(Icons.arrow_drop_down_outlined),
+            //   title: Text('Show sharp turns'),
+            //   trailing: ToggleSwitch(
+            //     customWidths: [50.0, 50.0],
+            //     cornerRadius: 10.0,
+            //     activeBgColors: [
+            //       [Colors.green.shade300],
+            //       [Colors.redAccent]
+            //     ],
+            //     activeFgColor: Colors.white,
+            //     inactiveBgColor: Colors.grey,
+            //     inactiveFgColor: Colors.white,
+            //     totalSwitches: 2,
+            //     // labels: ['', ''],
+            //     icons: [Icons.check, Icons.close],
+            //     onToggle: (index) {
+            //       displaySharpTurns = index!;
+            //     },
+            //   ),
+            // ),
+            // ListTile(
+            //   leading: Icon(Icons.arrow_drop_down_outlined),
+            //   title: Text('Show heavy inclinations'),
+            //   trailing: ToggleSwitch(
+            //     customWidths: [50.0, 50.0],
+            //     cornerRadius: 10.0,
+            //     activeBgColors: [
+            //       [Colors.green.shade300],
+            //       [Colors.redAccent]
+            //     ],
+            //     activeFgColor: Colors.white,
+            //     inactiveBgColor: Colors.grey,
+            //     inactiveFgColor: Colors.white,
+            //     totalSwitches: 2,
+            //     labels: ['', ''],
+            //     icons: [Icons.check, Icons.close],
+            //     onToggle: (index) {
+            //       displaySteepSlope = index!;
+            //     },
+            //   ),
+            // ),
+            Expanded(
+              child: ListView.builder(
+                  itemCount: preferences.length,
+                  padding: const EdgeInsets.all(10),
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: Colors.blueGrey.shade100.withAlpha(40),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        padding:
+                            EdgeInsets.symmetric(vertical: 2, horizontal: 5),
+                        child: ListTile(
+                          textColor: preferences[index][1]
+                              ? Colors.black
+                              : Colors.grey[500],
+                          title: Text(
+                            preferences[index][0],
+                            style: TextStyle(
+                              fontSize: 16,
+                            ),
+                          ),
+                          trailing: CupertinoSwitch(
+                            value: preferences[index][1],
+                            onChanged: (value) {
+                              setState(() {
+                                onPreferenceChanged(index, value);
+                              });
+
+                              print(preferences[index][0] +
+                                  " Changed to " +
+                                  preferences[index][1].toString());
+                            },
+                            activeTrackColor: Colors.indigo[400],
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 10),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(8.0),
                   child: StreamBuilder(
                     stream: Auth().authStateChanges,
                     builder: (context, snapshot) {
@@ -236,7 +372,7 @@ class _SettingScreenState extends State<SettingScreen> {
                           child: Text(
                             "Sign up",
                             style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 16,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -245,209 +381,11 @@ class _SettingScreenState extends State<SettingScreen> {
                     },
                   ),
                 ),
-              ],
-            ),
-            ListTile(
-              title: Text('Preferences',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
-            ListTile(
-              leading: Icon(Icons.arrow_drop_down_outlined),
-              title: Text('Show speed'),
-              trailing: ToggleSwitch(
-                customWidths: [50.0, 50.0],
-                cornerRadius: 10.0,
-                activeBgColors: [
-                  [Colors.green.shade300],
-                  [Colors.redAccent]
-                ],
-                activeFgColor: Colors.white,
-                inactiveBgColor: Colors.grey,
-                inactiveFgColor: Colors.white,
-                totalSwitches: 2,
-                labels: ['', ''],
-                icons: [Icons.check, Icons.close],
-                onToggle: (index) {
-                  displaySpeed = index!;
-                },
               ),
             ),
-            ListTile(
-              leading: Icon(Icons.arrow_drop_down_outlined),
-              title: Text('Show sharp turns'),
-              trailing: ToggleSwitch(
-                customWidths: [50.0, 50.0],
-                cornerRadius: 10.0,
-                activeBgColors: [
-                  [Colors.green.shade300],
-                  [Colors.redAccent]
-                ],
-                activeFgColor: Colors.white,
-                inactiveBgColor: Colors.grey,
-                inactiveFgColor: Colors.white,
-                totalSwitches: 2,
-                // labels: ['', ''],
-                icons: [Icons.check, Icons.close],
-                onToggle: (index) {
-                  displaySharpTurns = index!;
-                },
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.arrow_drop_down_outlined),
-              title: Text('Show heavy inclinations'),
-              trailing: ToggleSwitch(
-                customWidths: [50.0, 50.0],
-                cornerRadius: 10.0,
-                activeBgColors: [
-                  [Colors.green.shade300],
-                  [Colors.redAccent]
-                ],
-                activeFgColor: Colors.white,
-                inactiveBgColor: Colors.grey,
-                inactiveFgColor: Colors.white,
-                totalSwitches: 2,
-                labels: ['', ''],
-                icons: [Icons.check, Icons.close],
-                onToggle: (index) {
-                  displaySteepSlope = index!;
-                },
-              ),
-            )
           ],
-        ));
+        ),
+      ),
+    );
   }
 }
-
-
-
-
-
-// class SettingScreen extends StatelessWidget {
-//   const SettingScreen({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Scaffold(
-//         // backgroundColor: darkBlue,
-//         appBar: AppBar(
-//           title: Center(
-//               child: Text(
-//             'Settings',
-//             style: TextStyle(
-//               fontSize: 20,
-//             ),
-//           )),
-//           backgroundColor: darkBlue,
-//           foregroundColor: lightGray,
-//         ),
-//         body: ListView(
-//           children: [
-//             Row(
-//               mainAxisAlignment: MainAxisAlignment.start,
-//               children: [
-//                 Container(
-//                   padding: EdgeInsets.all(10),
-//                   margin: EdgeInsets.all(20.0),
-//                   decoration: BoxDecoration(
-//                     border: Border.all(
-//                       color: Colors.black, // Border color (grey)
-//                       width: 3.0, // Border width
-//                     ),
-//                     borderRadius: BorderRadius.circular(100.0),
-//                   ),
-//                   child: Icon(
-//                     Icons.person,
-//                     size: 64,
-//                   ),
-//                 ),
-//                 Center(
-//                   child: ElevatedButton(
-//                     // style: ,
-//                     onPressed: () {},
-//                     child: Container(
-//                       // padding: EdgeInsets.only(
-//                       //     left: 30, right: 30, top: 10, bottom: 10),
-//                       margin: EdgeInsets.all(20),
-//                       decoration: BoxDecoration(
-//                         borderRadius: BorderRadius.circular(10),
-//                         // color: Colors.blue[100],
-//                       ),
-                      
-//                       child: Text('Sign Up'),
-//                     ),
-//                   ),
-//                 )
-//               ],
-//             ),
-//             ListTile(
-//               title: Text('Preferences',
-//                   style: TextStyle(fontWeight: FontWeight.bold)),
-//             ),
-//             ListTile(
-//               leading: Icon(Icons.arrow_drop_down_outlined),
-//               title: Text('Show speed'),
-//               trailing: ToggleSwitch(
-//                 customWidths: [90.0, 50.0],
-//                 cornerRadius: 20.0,
-//                 activeBgColors: [
-//                   [Colors.green.shade300],
-//                   [Colors.redAccent]
-//                 ],
-//                 activeFgColor: Colors.white,
-//                 inactiveBgColor: Colors.grey,
-//                 inactiveFgColor: Colors.white,
-//                 totalSwitches: 2,
-//                 labels: ['', ''],
-//                 icons: [Icons.check, Icons.close],
-//                 onToggle: (index) {
-//                   // print('switched to: $index');
-//                 },
-//               ),
-//             ),
-//             ListTile(
-//               leading: Icon(Icons.arrow_drop_down_outlined),
-//               title: Text('Show sharp turns'),
-//               trailing: ToggleSwitch(
-//                 customWidths: [90.0, 50.0],
-//                 cornerRadius: 20.0,
-//                 activeBgColors: [
-//                   [Colors.green.shade300],
-//                   [Colors.redAccent]
-//                 ],
-//                 activeFgColor: Colors.white,
-//                 inactiveBgColor: Colors.grey,
-//                 inactiveFgColor: Colors.white,
-//                 totalSwitches: 2,
-//                 labels: ['', ''],
-//                 icons: [Icons.check, Icons.close],
-//                 onToggle: (index) {
-//                   // print('switched to: $index');
-//                 },
-//               ),
-//             ),
-//             ListTile(
-//               leading: Icon(Icons.arrow_drop_down_outlined),
-//               title: Text('Show heavy inclinations'),
-//               trailing: ToggleSwitch(
-//                 customWidths: [90.0, 50.0],
-//                 cornerRadius: 20.0,
-//                 activeBgColors: [
-//                   [Colors.green.shade300],
-//                   [Colors.redAccent]
-//                 ],
-//                 activeFgColor: Colors.white,
-//                 inactiveBgColor: Colors.grey,
-//                 inactiveFgColor: Colors.white,
-//                 totalSwitches: 2,
-//                 labels: ['', ''],
-//                 icons: [Icons.check, Icons.close],
-//                 onToggle: (index) {
-//                   // print('switched to: $index');
-//                 },
-//               ),
-//             )
-//           ],
-//         ));
-//   }
-// }

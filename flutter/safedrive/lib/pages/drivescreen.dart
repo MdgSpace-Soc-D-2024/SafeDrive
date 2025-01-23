@@ -84,7 +84,7 @@ class _DriveScreenState extends State<DriveScreen> {
     super.initState();
     getLocationUpdates();
     _loadLastLocation();
-    downloadTilesForOfflineUse();
+    // downloadTilesForOfflineUse();
   }
 
   // Checks if our platform is Android and uses that to improve performance
@@ -160,7 +160,7 @@ class _DriveScreenState extends State<DriveScreen> {
     );
 
     // Function to get the steep slope every time destination is reset
-    if (displaySteepSlope == 0) {
+    if (preferences[2][0]) {
       startPoint =
           await getCurrentLocationOnce(); // Starting point is the current location
       endPoint = pos; // Ending point is the destination marker
@@ -190,249 +190,257 @@ class _DriveScreenState extends State<DriveScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Stack(
-        children: [
-          Container(
-            height: MediaQuery.of(context).size.height,
-            width: MediaQuery.of(context).size.width,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                // Google Map
-                _currentP == null
-                    ? const Center(
-                        child: Text(
-                          "Loading...",
-                          style: TextStyle(
-                            fontSize: 24,
-                          ),
-                        ),
-                      )
-                    : GoogleMap(
-                        // Markers
-                        markers: {
-                          // Destination marker
-                          if (_destination != null) _destination!,
-
-                          // Live location marker
-                          Marker(
-                            markerId: MarkerId("_currentLocation"),
-                            icon: BitmapDescriptor.defaultMarker,
-                            position: _currentP!,
-                            infoWindow: InfoWindow(
-                              title: "Current Location",
+    return SafeArea(
+      child: Scaffold(
+        body: Stack(
+          children: [
+            Container(
+              height: MediaQuery.of(context).size.height,
+              width: MediaQuery.of(context).size.width,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Google Map
+                  _currentP == null
+                      ? const Center(
+                          child: Text(
+                            "Loading...",
+                            style: TextStyle(
+                              fontSize: 24,
                             ),
                           ),
-                        },
-                        polylines: Set<Polyline>.of(polylines.values),
-                        onLongPress: _addMarker,
-                        onMapCreated: _onMapCreated,
-                        initialCameraPosition: CameraPosition(
-                          target: initialLocation,
-                          zoom: 15.0,
-                        ),
-                        myLocationEnabled: true,
-                        myLocationButtonEnabled: true,
-                        mapType: MapType
-                            .normal, // Use normal map type for simplicity
-                        zoomControlsEnabled: true,
-                        compassEnabled: true,
-                      ),
-              ],
-            ),
-          ),
-          Positioned(
-            right: 8,
-            bottom: 500,
-            // Button to move the camera to the destination on being pressed
-            child: FloatingActionButton(
-              onPressed: () {
-                _destinationPoint != null
-                    ? mapController?.animateCamera(
-                        CameraUpdate.newCameraPosition(CameraPosition(
-                          target: _destinationPoint!,
-                          zoom: 14.5,
-                        )),
-                      )
-                    : () {
-                        // Do nothing
-                      };
-              },
-              mini: true,
-              backgroundColor: Colors.white,
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(5)),
-              child: Icon(Icons.center_focus_strong),
-            ),
-          ),
-          Positioned(
-            right: 8,
-            bottom: 100,
-            child: FloatingActionButton(
-              // Favorites button
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(100),
-              ),
-              onPressed: () {
-                // Shows a dialog with all the favorited locations on being pressed
-                showDialog(
-                  context: context,
-                  builder: (BuildContext context) {
-                    return Dialog(
-                      backgroundColor: Colors.white,
-                      insetPadding: EdgeInsets.all(10),
-                      child: Container(
-                        height: MediaQuery.of(context).size.height * 0.75,
-                        width: MediaQuery.of(context).size.width * 0.90,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                        ),
-                        child: Column(
-                          children: [
-                            Container(
-                              width: MediaQuery.of(context).size.width * 0.90,
-                              padding: EdgeInsets.all(10),
-                              // decoration: BoxDecoration(
-                              //   border: Border(color: Colors.black),
-                              // ),
-                              child: Text(
-                                "Favorites",
-                                style: TextStyle(
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 20,
-                                ),
+                        )
+                      : GoogleMap(
+                          // Markers
+                          markers: {
+                            // Destination marker
+                            if (_destination != null) _destination!,
+
+                            // Live location marker
+                            Marker(
+                              markerId: MarkerId("_currentLocation"),
+                              icon: BitmapDescriptor.defaultMarker,
+                              position: _currentP!,
+                              infoWindow: InfoWindow(
+                                title: "Current Location",
                               ),
                             ),
-                            FutureBuilder(
-                              future: FirebaseFirestore.instance
-                                  .collection("favoritesList")
-                                  .get(),
-                              builder: (context, snapshot) {
-                                if (snapshot.connectionState ==
-                                    ConnectionState.waiting) {
-                                  return const Center(
-                                    child: CircularProgressIndicator(),
-                                  );
-                                }
-                                if (!snapshot.hasData) {
-                                  return const Text(
-                                      "No favorited locations yet.");
-                                } else {
-                                  return Expanded(
-                                    child: ListView.builder(
-                                        itemCount:
-                                            snapshot.data!.docs.length - 1,
-                                        itemBuilder: (context, index) {
-                                          var doc = snapshot.data!.docs[index];
-                                          return GestureDetector(
-                                            onTap: () {
-                                              _addMarker(LatLng(doc["Latitude"],
-                                                  doc["Longitude"]));
-                                              mapController?.animateCamera(
-                                                CameraUpdate.newCameraPosition(
-                                                  CameraPosition(
-                                                    target: LatLng(
-                                                        doc["Latitude"],
-                                                        doc["Longitude"]),
-                                                    zoom: 15.0,
-                                                  ),
-                                                ),
-                                              );
-                                              Navigator.of(context).pop();
-                                            },
-                                            child: ListTile(
-                                              title: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Text(
-                                                    doc['Name'],
-                                                    style: TextStyle(
-                                                      fontSize: 18,
+                          },
+                          polylines: Set<Polyline>.of(polylines.values),
+                          onLongPress: _addMarker,
+                          onMapCreated: _onMapCreated,
+                          initialCameraPosition: CameraPosition(
+                            target: initialLocation,
+                            zoom: 15.0,
+                          ),
+                          myLocationEnabled: true,
+                          myLocationButtonEnabled: true,
+                          mapType: MapType
+                              .normal, // Use normal map type for simplicity
+                          zoomControlsEnabled: true,
+                          compassEnabled: true,
+                        ),
+                ],
+              ),
+            ),
+            Positioned(
+              right: 8,
+              top: 60,
+              // Button to move the camera to the destination on being pressed
+              child: FloatingActionButton(
+                onPressed: () {
+                  _destinationPoint != null
+                      ? mapController?.animateCamera(
+                          CameraUpdate.newCameraPosition(CameraPosition(
+                            target: _destinationPoint!,
+                            zoom: 14.5,
+                          )),
+                        )
+                      : () {
+                          // Do nothing
+                        };
+                },
+                mini: true,
+                backgroundColor: Colors.white,
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5)),
+                child: Icon(Icons.center_focus_strong),
+              ),
+            ),
+            Positioned(
+              right: 8,
+              bottom: 100,
+              child: FloatingActionButton(
+                // Favorites button
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                onPressed: () {
+                  // Shows a dialog with all the favorited locations on being pressed
+                  showDialog(
+                    context: context,
+                    builder: (BuildContext context) {
+                      return Dialog(
+                        backgroundColor: Colors.white,
+                        insetPadding: EdgeInsets.all(10),
+                        child: Container(
+                          height: MediaQuery.of(context).size.height * 0.75,
+                          width: MediaQuery.of(context).size.width * 0.90,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                          ),
+                          child: Column(
+                            children: [
+                              Container(
+                                width: MediaQuery.of(context).size.width * 0.90,
+                                padding: EdgeInsets.all(10),
+                                // decoration: BoxDecoration(
+                                //   border: Border(color: Colors.black),
+                                // ),
+                                child: Text(
+                                  "Favorites",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 20,
+                                  ),
+                                ),
+                              ),
+                              FutureBuilder(
+                                future: FirebaseFirestore.instance
+                                    .collection("favoritesList")
+                                    .get(),
+                                builder: (context, snapshot) {
+                                  if (snapshot.connectionState ==
+                                      ConnectionState.waiting) {
+                                    return const Center(
+                                      child: CircularProgressIndicator(),
+                                    );
+                                  }
+                                  if (!snapshot.hasData) {
+                                    return const Text(
+                                        "No favorited locations yet.");
+                                  } else {
+                                    return Expanded(
+                                      child: ListView.builder(
+                                          itemCount:
+                                              snapshot.data!.docs.length - 1,
+                                          itemBuilder: (context, index) {
+                                            var doc =
+                                                snapshot.data!.docs[index];
+                                            return GestureDetector(
+                                              onTap: () {
+                                                _addMarker(LatLng(
+                                                    doc["Latitude"],
+                                                    doc["Longitude"]));
+                                                mapController?.animateCamera(
+                                                  CameraUpdate
+                                                      .newCameraPosition(
+                                                    CameraPosition(
+                                                      target: LatLng(
+                                                          doc["Latitude"],
+                                                          doc["Longitude"]),
+                                                      zoom: 15.0,
                                                     ),
                                                   ),
-                                                  SizedBox(height: 8),
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment.start,
-                                                    children: [
-                                                      // Drive to
-                                                      ElevatedButton.icon(
-                                                        onPressed: () {},
-                                                        icon: Icon(Icons
-                                                            .directions_car),
-                                                        label: Text("Drive"),
+                                                );
+                                                Navigator.of(context).pop();
+                                              },
+                                              child: ListTile(
+                                                title: Column(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Text(
+                                                      doc['Name'],
+                                                      style: TextStyle(
+                                                        fontSize: 18,
                                                       ),
-                                                      SizedBox(width: 8),
-                                                      // Delete button
-                                                      ElevatedButton.icon(
-                                                        onPressed: () {
-                                                          FirebaseFirestore
-                                                              .instance
-                                                              .collection(
-                                                                  "favoritesList")
-                                                              .doc(snapshot
-                                                                  .data!
-                                                                  .docs[index]
-                                                                  .id)
-                                                              .delete();
-                                                        },
-                                                        icon: Icon(Icons.delete,
-                                                            color: Colors.red),
-                                                        label: Text("Delete"),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ],
+                                                    ),
+                                                    SizedBox(height: 8),
+                                                    Row(
+                                                      mainAxisAlignment:
+                                                          MainAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        // Drive to
+                                                        ElevatedButton.icon(
+                                                          onPressed: () {},
+                                                          icon: Icon(Icons
+                                                              .directions_car),
+                                                          label: Text("Drive"),
+                                                        ),
+                                                        SizedBox(width: 8),
+                                                        // Delete button
+                                                        ElevatedButton.icon(
+                                                          onPressed: () {
+                                                            FirebaseFirestore
+                                                                .instance
+                                                                .collection(
+                                                                    "favoritesList")
+                                                                .doc(snapshot
+                                                                    .data!
+                                                                    .docs[index]
+                                                                    .id)
+                                                                .delete();
+                                                          },
+                                                          icon: Icon(
+                                                              Icons.delete,
+                                                              color:
+                                                                  Colors.red),
+                                                          label: Text("Delete"),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
-                                            ),
-                                          );
-                                        }),
-                                  );
-                                }
-                              },
-                            )
-                          ],
+                                            );
+                                          }),
+                                    );
+                                  }
+                                },
+                              )
+                            ],
+                          ),
                         ),
-                      ),
-                    );
-                  },
-                );
-              },
-              elevation: 3,
-              mini: true,
-              backgroundColor: const Color.fromARGB(255, 241, 48, 48),
-              foregroundColor: Colors.white,
-              child: Icon(Icons.favorite_border),
+                      );
+                    },
+                  );
+                },
+                elevation: 3,
+                mini: true,
+                backgroundColor: const Color.fromARGB(255, 241, 48, 48),
+                foregroundColor: Colors.white,
+                child: Icon(Icons.favorite_border),
+              ),
             ),
-          ),
-          // Speed display widget
-          if (displaySpeed == 0)
-            Positioned(
-              bottom: 550,
-              left: 10,
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  vertical: 8,
-                  horizontal: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.black.withAlpha(180),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Text(
-                  "${speedInKmPerHour.toStringAsFixed(1)} km/h",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+            // Speed display widget
+            if (preferences[0][1])
+              Positioned(
+                top: 20,
+                left: 10,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    vertical: 8,
+                    horizontal: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.indigo.shade800.withAlpha(150),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Text(
+                    "${speedInKmPerHour.toStringAsFixed(1)} km/h",
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -515,7 +523,7 @@ class _DriveScreenState extends State<DriveScreen> {
                 .then((polylineCoordinates) {
               return calculateSlope(polylineCoordinates);
             }).then((steepSlopePoints) {
-              if (displaySteepSlope == 0) {
+              if (preferences[2][0]) {
                 Map<LatLng, int> startPointsMap =
                     getStartPointsMap(steepSlopePoints);
 
@@ -576,7 +584,7 @@ class _DriveScreenState extends State<DriveScreen> {
     // List to store the lists of steep points (their starting and ending coordinates)
     List<List<LatLng>> steepSlopePoints = [];
 
-    if (displaySteepSlope == 0) {
+    if (preferences[2][0]) {
       // print(2); // For debugging
 
       // Get the elevations for all points in a single call so as to not make uneccessary requests + its faster
@@ -611,7 +619,7 @@ class _DriveScreenState extends State<DriveScreen> {
   // Generates red lines on the Google Map wherever the elevation is steeper than 5%
   void generateRedPolylinesFromSteepPoints(
       List<LatLng> polylineCoordinates) async {
-    if (displaySteepSlope == 0) {
+    if (preferences[2][0]) {
       // print(1); // For debugging
       List<List<LatLng>> steepSlopePoints =
           await calculateSlope(polylineCoordinates);
@@ -688,7 +696,7 @@ class _DriveScreenState extends State<DriveScreen> {
 
   void generateBluePolylinesFromSharpTurns(
       List<LatLng> polylineCoordinates) async {
-    if (displaySharpTurns == 0) {
+    if (preferences[1][1]) {
       // print("Starting sharp turn polyline generation"); // For debugging
 
       // Detect sharp turns

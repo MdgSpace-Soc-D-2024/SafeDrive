@@ -7,6 +7,7 @@ import 'package:safedrive/pages/settingscreen.dart';
 import 'package:safedrive/pages/mapscreen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/services.dart';
 
 Color darkBlue = Color(0xFF0D1B2A); // Dark Blue
 Color deepBlue = Color(0xFF1B263B); // Deep Blue
@@ -70,11 +71,75 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Changes the color of the status bar so it is visible
+    SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
+
     return MaterialApp(
       title: 'SafeDrive',
       theme: ThemeData(
-        primarySwatch: Colors.indigo, // Apply the custom color swatch
-      ),
+          primarySwatch: Colors.indigo, // Apply the custom color swatch
+          textTheme: TextTheme(
+            displayLarge: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 40,
+                fontWeight: FontWeight.bold),
+            displayMedium: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 34,
+                fontWeight: FontWeight.bold),
+            displaySmall: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 27,
+                fontWeight: FontWeight.normal),
+            headlineLarge: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 30,
+                fontWeight: FontWeight.bold),
+            headlineMedium: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 24,
+                fontWeight: FontWeight.w600),
+            headlineSmall: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 20,
+                fontWeight: FontWeight.w500),
+            titleLarge: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 19,
+                fontWeight: FontWeight.bold),
+            titleMedium: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 15,
+                fontWeight: FontWeight.w600),
+            titleSmall: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 13,
+                fontWeight: FontWeight.w400),
+            bodyLarge: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 17,
+                fontWeight: FontWeight.normal),
+            bodyMedium: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 14,
+                fontWeight: FontWeight.normal),
+            bodySmall: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.normal),
+            labelLarge: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 14,
+                fontWeight: FontWeight.w600),
+            labelMedium: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 12,
+                fontWeight: FontWeight.w500),
+            labelSmall: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 10,
+                fontWeight: FontWeight.w400),
+          )),
       home: MyHomePage(),
       routes: {
         '/mapscreen': (context) => MapScreen(),
@@ -94,7 +159,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _currentIndex = 1;
+  int _currentIndex = 2;
   final List<Widget> _screens = [
     MapScreen(),
     DriveScreen(),
@@ -113,11 +178,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('SafeDrive'),
-        foregroundColor: lightGray,
-        backgroundColor: Colors.black,
-      ),
       body: _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         type: BottomNavigationBarType.fixed,
