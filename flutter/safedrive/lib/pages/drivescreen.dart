@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:safedrive/models/noti_service.dart';
 import 'mapscreen.dart';
 import '../models/misc.dart';
 import 'settingscreen.dart';
@@ -14,9 +15,10 @@ import 'package:google_maps_flutter_android/google_maps_flutter_android.dart';
 import 'package:location/location.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:geolocator/geolocator.dart';
-// Vibration
+// Vibration and Sound
 import 'package:vibration/vibration.dart';
 import "package:shared_preferences/shared_preferences.dart";
+import 'package:just_audio/just_audio.dart';
 // Connectivity
 import 'package:connectivity_plus/connectivity_plus.dart';
 
@@ -175,7 +177,7 @@ class _DriveScreenState extends State<DriveScreen> {
 
         Map<LatLng, int> startPointsMap = getStartPointsMap(sharpTurnPoints);
         List<LatLng> startPointsList = getStartPointsList(sharpTurnPoints);
-        vibrateIfInRadius(startPoint!, startPointsMap, startPointsList);
+        playSoundIfInRadius(startPoint!, startPointsMap, startPointsList, 1);
       }
     }
   }
@@ -529,8 +531,8 @@ class _DriveScreenState extends State<DriveScreen> {
                 List<LatLng> startPointsList =
                     getStartPointsList(steepSlopePoints);
 
-                return vibrateIfInRadius(
-                    _currentP!, startPointsMap, startPointsList);
+                return playSoundIfInRadius(
+                    _currentP!, startPointsMap, startPointsList, 0);
               }
             });
           }
@@ -644,50 +646,59 @@ class _DriveScreenState extends State<DriveScreen> {
   }
 
   // Function to check if marker is inside radius of target coordinates
-  void vibrateIfInRadius(LatLng marker, Map<LatLng, int> targetStatus,
-      List<LatLng> targets) async {
-    bool hasVibrator =
-        await Vibration.hasVibrator() ?? false; // Handle nullable bool
-    if (hasVibrator) {
-      double radius = 10; // 10 meters
-      for (int i = 0; i < targets.length; i++) {
-        LatLng target = targets[i];
+  void playSoundIfInRadius(LatLng marker, Map<LatLng, int> targetStatus,
+      List<LatLng> targets, int alert) async {
+    if (preferences[3][1]) {
+      bool hasVibrator = await Vibration.hasVibrator() ?? false;
+      if (hasVibrator) {
+        final AudioPlayer player = AudioPlayer();
 
-        // Check the distance first
-        double distanceInMeters = Geolocator.distanceBetween(marker.latitude,
-            marker.longitude, target.latitude, target.longitude);
+        double radius = 1000; // 10 meters
+        for (int i = 0; i < targets.length; i++) {
+          LatLng target = targets[i];
 
-        // If the marker is within the radius, check the target status
-        if (distanceInMeters <= radius) {
-          print("Marker entered the radius for target: $target");
+          // Check the distance first
+          double distanceInMeters = Geolocator.distanceBetween(marker.latitude,
+              marker.longitude, target.latitude, target.longitude);
 
-          // Check if the target has not been entered (status = 0) and mark it as entered
-          if (targetStatus[target] == 0) {
-            Vibration.vibrate(duration: 1000); // Vibrate for 1 second
+          // If the marker is within the radius, check the target status
+          if (distanceInMeters <= radius) {
+            print("Marker entered the radius for target: $target");
 
-            targetStatus[target] = 1;
+            // Check if the target has not been entered (status = 0) and mark it as entered
+            if (targetStatus[target] == 0) {
+              try {
+                Vibration.vibrate(duration: 500);
+                await player.setAsset('assets/noise.mp3');
+                player.play();
 
-// The warning dialog caused errors thats why its commented out
-
-            // showDialog(
-            //   context: context,
-            //   barrierDismissible: true,
-            //   builder: (BuildContext context) {
-            //     return AlertDialog(
-            //       title: Text('Warning!'),
-            //       content: Text('You are approaching a steep slope.'),
-            //     );
-            //   },
-            // );
-
-            // // Automatically dismiss the dialog after 4 seconds
-            // Future.delayed(Duration(seconds: 4), () {
-            //   Navigator.of(context).pop(); // Dismiss the dialog
-            //   print('Dialog dismissed after 4 seconds');
-            // });
+                // Update target status after sound is played
+                player.playerStateStream.listen((state) {
+                  if (state.processingState == ProcessingState.completed) {
+                    targetStatus[target] = 1;
+                  }
+                });
+              } catch (e) {
+                print("Error playing sound: $e");
+              }
+            }
           }
         }
       }
+    }
+    // if (alert == 0) {
+    //   notifyIfInRadius("Alert", "Steep slope approaching!");
+    // } else if (alert == 1) {
+    //   notifyIfInRadius("Alert", "Sharp turn approaching!");
+    // }
+  }
+
+  Future<void> notifyIfInRadius(String title, String body) async {
+    if (preferences[4][1]) {
+      NotiService().showNotification(
+        title: title,
+        body: body,
+      );
     }
   }
 

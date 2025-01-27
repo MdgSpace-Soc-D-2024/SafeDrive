@@ -499,6 +499,31 @@ class _MapScreenState extends State<MapScreen> {
                 child: Icon(Icons.favorite_border),
               ),
             ),
+            Positioned(
+              right: 8,
+              bottom: 200,
+              // Button to move the camera to the location marker if we wander off
+              child: FloatingActionButton(
+                onPressed: () async {
+                  LatLng? currentLocation = await getCurrentLocationOnce();
+                  if (currentLocation != null) {
+                    mapController?.animateCamera(
+                      CameraUpdate.newCameraPosition(
+                        CameraPosition(
+                          target: currentLocation,
+                          zoom: 16.0,
+                        ),
+                      ),
+                    );
+                  } else {
+                    // Do nothing
+                  }
+                },
+                elevation: 3,
+                mini: true,
+                child: Icon(Icons.zoom_in_map),
+              ),
+            ),
           ],
         ),
       ),

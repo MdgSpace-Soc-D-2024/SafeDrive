@@ -11,7 +11,8 @@ final List preferences = [
   ["Show speed", true],
   ["Show sharp turns", true],
   ["Show heavy inclination", true],
-  ["Dark Mode", true]
+  ["Vibrate device", true],
+  ["Show notifications", true]
 ];
 
 Future<void> savePreference(String key, bool value) async {
@@ -292,7 +293,7 @@ class _SettingScreenState extends State<SettingScreen> {
               ),
               Expanded(
                 child: ListView.builder(
-                    itemCount: preferences.length - 1,
+                    itemCount: preferences.length,
                     padding: const EdgeInsets.all(10),
                     itemBuilder: (context, index) {
                       return Padding(

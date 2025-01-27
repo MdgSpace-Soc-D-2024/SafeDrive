@@ -1,3 +1,8 @@
+// Sound
+// Firebase Notifiication
+// Traffic (?)
+// Offline Maps
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:safedrive/firebase_options.dart';
@@ -65,6 +70,7 @@ class MyApp extends StatelessWidget {
       title: 'SafeDrive',
       theme: Provider.of<ThemeProvider>(context).themeData,
       home: MyHomePage(),
+      debugShowCheckedModeBanner: false,
       routes: {
         '/mapscreen': (context) => MapScreen(),
         '/drivescreen': (context) => DriveScreen(),
