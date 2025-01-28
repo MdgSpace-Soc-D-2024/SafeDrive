@@ -1,7 +1,14 @@
-// Sound
-// Firebase Notifiication
+// Detecting places like highways where even a smoother turn could be dangerous, using speed and locations to assess whether a turn is dangerous or not
+// Longer vibrations / special sound when the user crosses a certain speed
+
+// Firebase Notification
 // Traffic (?)
 // Offline Maps
+// Add dark mode to shared preferences
+// Timeout for firestore requests showing "Check your network"
+
+// Chunking the route and calculating the elevation only for 1 km  for more accurate results
+// Splitting the code into smaller, reusable components instead of one big chunk
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -10,41 +17,44 @@ import 'package:safedrive/pages/drivescreen.dart';
 import 'package:safedrive/pages/offline_map_page.dart';
 import 'package:safedrive/pages/settingscreen.dart';
 import 'package:safedrive/pages/mapscreen.dart';
+import 'package:safedrive/models/noti_service.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/services.dart';
 import 'package:safedrive/themes/light_mode.dart';
 import 'package:safedrive/themes/theme_provider.dart';
 
 // Interpolated Colors (to create 9 shades in reverse order)
-class ConnectivityService extends ChangeNotifier {
-  bool _isOffline = false;
-  bool get isOffline => _isOffline;
+// class ConnectivityService extends ChangeNotifier {
+//   bool _isOffline = false;
+//   bool get isOffline => _isOffline;
 
-  ConnectivityService() {
-    // Listen for connectivity changes
-    Connectivity()
-        .onConnectivityChanged
-        .listen((List<ConnectivityResult> result) {
-      _checkConnectivity(result);
-    });
-  }
+//   ConnectivityService() {
+//     // Listen for connectivity changes
+//     Connectivity()
+//         .onConnectivityChanged
+//         .listen((List<ConnectivityResult> result) {
+//       _checkConnectivity(result);
+//     });
+//   }
 
-  // Check connectivity based on results
-  Future<void> _checkConnectivity(List<ConnectivityResult> result) async {
-    // Check if any of the results are none
-    bool isOffline = result.contains(ConnectivityResult.none);
+//   // Check connectivity based on results
+//   Future<void> _checkConnectivity(List<ConnectivityResult> result) async {
+//     // Check if any of the results are none
+//     bool isOffline = result.contains(ConnectivityResult.none);
 
-    if (isOffline != _isOffline) {
-      _isOffline = isOffline;
-      notifyListeners();
-    }
-  }
-}
+//     if (isOffline != _isOffline) {
+//       _isOffline = isOffline;
+//       notifyListeners();
+//     }
+//   }
+// }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  await FirebaseApi().initNotifications();
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider(

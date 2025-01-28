@@ -366,7 +366,11 @@ class _DriveScreenState extends State<DriveScreen> {
                                                       children: [
                                                         // Drive to
                                                         ElevatedButton.icon(
-                                                          onPressed: () {},
+                                                          onPressed: () {
+                                                            _addMarker(LatLng(
+                                                                doc["Latitude"],
+                                                                doc["Longitude"]));
+                                                          },
                                                           icon: Icon(Icons
                                                               .directions_car),
                                                           label: Text("Drive"),
@@ -645,6 +649,83 @@ class _DriveScreenState extends State<DriveScreen> {
     }
   }
 
+  // Function to show overlay
+  OverlayEntry? _overlayEntry;
+
+  void showOverlay(BuildContext context, String? title, String? body) {
+    var overlay = Overlay.of(context);
+
+    // chcek if theres already a pre existing overlay, and remove it if it exists
+
+    // if (_overlayEntry == null) {
+    //   print("No overlay found in the context.");
+    //   return;
+    // } else {
+    //   _overlayEntry!.remove();
+    // }
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top: 100,
+        left: MediaQuery.of(context).size.width / 2 - 150,
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black26,
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                )
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title ?? "Alert!",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(
+                  height: 10,
+                ),
+                Text(
+                  body ?? "Drive carefully!",
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+                // ElevatedButton(
+                //     onPressed: () {
+                //       _overlayEntry!.remove();
+                //     },
+                //     child: Text(
+                //       "OK",
+                //       style: TextStyle(
+                //         color: Colors.blue.shade700,
+                //       ),
+                //     ))
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    overlay.insert(_overlayEntry!);
+
+    Future.delayed(Duration(seconds: 3), () {
+      _overlayEntry!.remove();
+    });
+  }
+
   // Function to check if marker is inside radius of target coordinates
   void playSoundIfInRadius(LatLng marker, Map<LatLng, int> targetStatus,
       List<LatLng> targets, int alert) async {
@@ -653,7 +734,7 @@ class _DriveScreenState extends State<DriveScreen> {
       if (hasVibrator) {
         final AudioPlayer player = AudioPlayer();
 
-        double radius = 1000; // 10 meters
+        double radius = 50; // 50 meters
         for (int i = 0; i < targets.length; i++) {
           LatLng target = targets[i];
 
@@ -672,6 +753,12 @@ class _DriveScreenState extends State<DriveScreen> {
                 await player.setAsset('assets/noise.mp3');
                 player.play();
 
+                if (alert == 0) {
+                  notifyIfInRadius("Alert!", "Steep slope approaching!");
+                } else if (alert == 1) {
+                  notifyIfInRadius("Alert!", "Sharp turn approaching!");
+                }
+
                 // Update target status after sound is played
                 player.playerStateStream.listen((state) {
                   if (state.processingState == ProcessingState.completed) {
@@ -686,19 +773,12 @@ class _DriveScreenState extends State<DriveScreen> {
         }
       }
     }
-    // if (alert == 0) {
-    //   notifyIfInRadius("Alert", "Steep slope approaching!");
-    // } else if (alert == 1) {
-    //   notifyIfInRadius("Alert", "Sharp turn approaching!");
-    // }
   }
 
-  Future<void> notifyIfInRadius(String title, String body) async {
+  void notifyIfInRadius(String title, String body) {
     if (preferences[4][1]) {
-      NotiService().showNotification(
-        title: title,
-        body: body,
-      );
+      _overlayEntry = null;
+      showOverlay(context, title, body);
     }
   }
 
