@@ -244,3 +244,53 @@ class TurnDetector {
     return sharpTurnSegments;
   }
 }
+
+// <----------------------------------- TRAFFIC DATA ------------------------------------------>
+class TrafficService {
+  final String googleApiKey = googleAPIKey;
+
+  Future<Map<String, dynamic>> getTrafficData(
+      LatLng origin, LatLng destination) async {
+    double originLat = origin.latitude;
+    double originLng = origin.longitude;
+    double destinationLat = destination.latitude;
+    double destinationLng = destination.longitude;
+    final String url =
+        'https://maps.googleapis.com/maps/api/distancematrix/json?origins=$originLat%2C$originLng&destinations=$destinationLat%2C$destinationLng&departure_time=now&traffic_model=best_guess&key=$googleApiKey';
+    final response = await http.get(Uri.parse(url));
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      print("TRAFFIC DATA FOLLOWS!!!");
+      print(data);
+      return data;
+    } else {
+      throw Exception("Failed to load traffic data");
+    }
+  }
+
+  Future<String> getTrafficStatus(
+      LatLng currentPosition, LatLng destination) async {
+    var data = await getTrafficData(currentPosition, destination);
+    int durationInTraffic =
+        data['rows'][0]['elements'][0]['duration_in_traffic']['value'];
+    int durationWithoutTraffic =
+        data['rows'][0]['elements'][0]['duration']['value'];
+
+    double percentageDifference =
+        ((durationInTraffic - durationWithoutTraffic) /
+                durationWithoutTraffic) *
+            100;
+
+    String trafficStatus;
+    if (percentageDifference >= 30) {
+      trafficStatus = "HIGH";
+    } else if (percentageDifference >= 10) {
+      trafficStatus = "NORMAL";
+    } else {
+      trafficStatus = "LOW";
+    }
+
+    return trafficStatus;
+  }
+}

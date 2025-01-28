@@ -13,6 +13,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:safedrive/firebase_options.dart';
+import 'package:safedrive/models/misc.dart';
 import 'package:safedrive/pages/drivescreen.dart';
 import 'package:safedrive/pages/offline_map_page.dart';
 import 'package:safedrive/pages/settingscreen.dart';

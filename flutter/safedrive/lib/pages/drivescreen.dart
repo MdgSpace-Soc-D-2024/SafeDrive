@@ -75,6 +75,8 @@ class _DriveScreenState extends State<DriveScreen> {
   GoogleMapController? mapController;
   LatLng? _currentP = LatLng(24, 86);
 
+  String trafficStatus = '';
+
   final Completer<GoogleMapController> _mapController =
       Completer<GoogleMapController>();
 
@@ -170,6 +172,8 @@ class _DriveScreenState extends State<DriveScreen> {
         List<LatLng> polylineCoordinates =
             await getPolylinePointsFromCoordinates(startPoint!, endPoint!);
         generateRedPolylinesFromSteepPoints(polylineCoordinates);
+        trafficStatus = await TrafficService()
+            .getTrafficStatus(startPoint!, polylineCoordinates[1]);
 
         List<List<LatLng>> sharpTurnPoints =
             TurnDetector().detectTurns(polylineCoordinates);
@@ -424,7 +428,7 @@ class _DriveScreenState extends State<DriveScreen> {
             if (preferences[0][1])
               Positioned(
                 top: 10,
-                left: 60,
+                left: 10,
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     vertical: 8,
@@ -444,6 +448,47 @@ class _DriveScreenState extends State<DriveScreen> {
                   ),
                 ),
               ),
+            Positioned(
+              top: 10,
+              right: 60,
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  vertical: 8,
+                  horizontal: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: trafficStatus == "HIGH"
+                      ? Colors.red.withAlpha(200)
+                      : trafficStatus == "NORMAL"
+                          ? Colors.yellow.withAlpha(200)
+                          : trafficStatus == "LOW"
+                              ? Colors.green.withAlpha(200)
+                              : Colors.grey.withAlpha(200),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      "TRAFFIC :",
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (_destination != null)
+                      Text(
+                        trafficStatus,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ),
           ],
         ),
       ),
