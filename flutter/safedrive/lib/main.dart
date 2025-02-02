@@ -1,8 +1,8 @@
+// FUTURE UPDATES
 // Detecting places like highways where even a smoother turn could be dangerous, using speed and locations to assess whether a turn is dangerous or not
 // Longer vibrations / special sound when the user crosses a certain speed
 
 // Firebase Notification
-// Traffic (?)
 // Offline Maps
 // Add dark mode to shared preferences
 // Timeout for firestore requests showing "Check your network"
@@ -13,20 +13,17 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:safedrive/firebase_options.dart';
-import 'package:safedrive/models/misc.dart';
-import 'package:safedrive/pages/drivescreen.dart';
+import 'package:safedrive/pages/drive_screen.dart';
 import 'package:safedrive/pages/offline_map_page.dart';
-import 'package:safedrive/pages/settingscreen.dart';
-import 'package:safedrive/pages/mapscreen.dart';
-import 'package:safedrive/models/noti_service.dart';
+import 'package:safedrive/pages/onboarding_screen.dart';
+import 'package:safedrive/pages/setting_screen.dart';
+import 'package:safedrive/pages/map_screen.dart';
+import 'package:safedrive/services/services.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/services.dart';
-import 'package:safedrive/themes/light_mode.dart';
 import 'package:safedrive/themes/theme_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-// Interpolated Colors (to create 9 shades in reverse order)
 // class ConnectivityService extends ChangeNotifier {
 //   bool _isOffline = false;
 //   bool get isOffline => _isOffline;
@@ -53,9 +50,14 @@ import 'package:safedrive/themes/theme_provider.dart';
 // }
 
 void main() async {
+  // widgets
   WidgetsFlutterBinding.ensureInitialized();
+
+  // firebase
   await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   await FirebaseApi().initNotifications();
+
+  // providers
   runApp(MultiProvider(
     providers: [
       ChangeNotifierProvider(
@@ -74,13 +76,23 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Changes the color of the status bar so it is visible
+    // changes the color of the status bar so it is visible
     SystemChrome.setSystemUIOverlayStyle(SystemUiOverlayStyle.dark);
 
     return MaterialApp(
       title: 'SafeDrive',
       theme: Provider.of<ThemeProvider>(context).themeData,
-      home: MyHomePage(),
+      home: FutureBuilder<bool>(
+          future: _checkFirstLaunch(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return CircularProgressIndicator();
+            } else if (snapshot.hasData && snapshot.data == true) {
+              return OnboardingScreen();
+            } else {
+              return MyHomePage();
+            }
+          }),
       debugShowCheckedModeBanner: false,
       routes: {
         '/mapscreen': (context) => MapScreen(),
@@ -89,6 +101,12 @@ class MyApp extends StatelessWidget {
         '/offlinemappage': (context) => OfflineMapPage(),
       },
     );
+  }
+
+  Future<bool> _checkFirstLaunch() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    bool isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
+    return isFirstLaunch;
   }
 }
 
@@ -108,7 +126,7 @@ class _MyHomePageState extends State<MyHomePage> {
     OfflineMapPage(),
   ];
 
-  // Function to add delay before switching screen
+  // add delay before switching screen
   Future<void> _onItemTapped(int index) async {
     // await Future.delayed(Duration(milliseconds: 200));
     setState(() {

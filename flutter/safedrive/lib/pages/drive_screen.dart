@@ -1,12 +1,9 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:safedrive/models/noti_service.dart';
-import 'mapscreen.dart';
+import 'dart:async';
+import 'package:safedrive/services/services.dart';
 import '../models/misc.dart';
-import 'settingscreen.dart';
+import 'setting_screen.dart';
 import 'package:safedrive/pages/.env.dart';
-import '../models/offline_map_misc.dart';
-import 'offline_map_page.dart';
 // Google
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -20,7 +17,7 @@ import 'package:vibration/vibration.dart';
 import "package:shared_preferences/shared_preferences.dart";
 import 'package:just_audio/just_audio.dart';
 // Connectivity
-import 'package:connectivity_plus/connectivity_plus.dart';
+// import 'package:connectivity_plus/connectivity_plus.dart';
 
 int speedInKmPerHour = 0;
 LatLng initialLocation = LatLng(37.4223, -122.0848);
@@ -28,30 +25,11 @@ LatLng? lastLocation;
 
 List<LatLng> latlngList = [];
 
-class ConnectivityService extends ChangeNotifier {
-  bool _isOffline = false;
-  bool get isOffline => _isOffline;
-
-  ConnectivityService() {
-    // Listen for connectivity changes
-    Connectivity()
-        .onConnectivityChanged
-        .listen((List<ConnectivityResult> result) {
-      _checkConnectivity(result);
-    });
-  }
-
-  // Check connectivity based on results
-  Future<void> _checkConnectivity(List<ConnectivityResult> result) async {
-    // Check if any of the results are none
-    bool isOffline = result.contains(ConnectivityResult.none);
-
-    if (isOffline != _isOffline) {
-      _isOffline = isOffline;
-      notifyListeners();
-    }
-  }
-}
+// markers and destinations
+Marker? _destination; // To store the destination marker
+LatLng? _destinationPoint; // To store the marker's location
+LatLng? startPoint; // Starting point of the drive
+LatLng? endPoint; // Destination point of the drive
 
 class DriveScreen extends StatefulWidget {
   const DriveScreen({super.key});
@@ -61,11 +39,13 @@ class DriveScreen extends StatefulWidget {
 }
 
 class _DriveScreenState extends State<DriveScreen> {
-  final _connectivityService = ConnectivityService();
+  // create an instance of connectivity service
+  // final _connectivityService = ConnectivityService();
 
-  final LatLng _initialCameraPosition = LatLng(37.4223, -122.0848);
-  // this should store the LatLng of the place where the user was last at before closing the app
-  // Will setup later using Cloud Firestore
+  // initial camera position should be taken from shared preferences, but if it isn't present then we can use this value
+  Future<void> getInitialLocations() async {
+    initialLocation = await loadLastLocation();
+  }
 
   int flag = 0;
 
@@ -84,14 +64,23 @@ class _DriveScreenState extends State<DriveScreen> {
 
   @override
   void initState() {
+    // initialize map renderer
     _initializeMapRenderer();
+
+    // get the initial camera position of the user
+    getInitialLocations();
+
+    // initialize the parent classes
     super.initState();
+
+    // get location updates of the user
     getLocationUpdates();
-    _loadLastLocation();
+
+    // start downloading tiles for offline use
     // downloadTilesForOfflineUse();
   }
 
-  // Checks if our platform is Android and uses that to improve performance
+  // checks if our platform is Android and uses that to improve performance
   void _initializeMapRenderer() {
     final GoogleMapsFlutterPlatform mapsImplementation =
         GoogleMapsFlutterPlatform.instance;
@@ -100,26 +89,13 @@ class _DriveScreenState extends State<DriveScreen> {
     }
   }
 
-  // Load last location from shared preferences
-  Future<void> _loadLastLocation() async {
-    final prefs = await SharedPreferences.getInstance();
-    double? lat = prefs.getDouble("lastLatitude");
-    double? lon = prefs.getDouble('lastLongitude');
-
-    setState(() {
-      if (lat != null && lon != null) {
-        initialLocation = LatLng(lat, lon);
-      }
-    });
-  }
-
-  // Called when the map is fully initialized
+  // called when the map is fully initialized
   void _onMapCreated(GoogleMapController controller) {
     mapController = controller;
-    _updateCamera(_initialCameraPosition);
+    _updateCamera(initialLocation);
   }
 
-// Updates the camera to animate to a specific location when the app is initialized
+// updates the camera to animate to a specific location when the app is initialized
   void _updateCamera(LatLng pos) {
     mapController?.animateCamera(CameraUpdate.newCameraPosition(
       CameraPosition(
@@ -129,7 +105,7 @@ class _DriveScreenState extends State<DriveScreen> {
     ));
   }
 
-  // Updates the camera to our current location as we move
+  // updates the camera to our current location as we move
   Future<void> _cameraToPosition(LatLng pos) async {
     final GoogleMapController controller = await _mapController.future;
     CameraPosition _newCameraPosition = CameraPosition(
@@ -141,18 +117,13 @@ class _DriveScreenState extends State<DriveScreen> {
     );
   }
 
-  Marker? _destination; // To store the destination marker
-  LatLng? _destinationPoint; // To store the marker's location
-  LatLng? startPoint; // Starting point of the drive
-  LatLng? endPoint; // Destination point of the drive
-
-  // Add marker
+  // add marker
   void _addMarker(LatLng pos) async {
     setState(
       () {
-        // To know if we need to get the steep slope data again, because destination has been reset
+        // to know if we need to get the steep slope data again, because destination has been reset
         flag = 0;
-        // Destination marker
+        // destination marker
         _destination = Marker(
             markerId: const MarkerId("_destination"),
             infoWindow: const InfoWindow(title: "Destination"),
@@ -163,21 +134,24 @@ class _DriveScreenState extends State<DriveScreen> {
       },
     );
 
-    // Function to get the steep slope every time destination is reset
-    if (preferences[2][1]) {
-      startPoint =
-          await getCurrentLocationOnce(); // Starting point is the current location
-      endPoint = pos; // Ending point is the destination marker
-      if (startPoint != null && endPoint != null) {
-        List<LatLng> polylineCoordinates =
-            await getPolylinePointsFromCoordinates(startPoint!, endPoint!);
+    // function to get the steep slope every time destination is reset
+
+    // current location
+    startPoint = await getCurrentLocationOnce();
+    // destination marker
+    endPoint = pos;
+
+    if (startPoint != null && endPoint != null) {
+      List<LatLng> polylineCoordinates =
+          await getPolylinePointsFromCoordinates(startPoint!, endPoint!);
+      trafficStatus = await TrafficService()
+          .getTrafficStatus(startPoint!, polylineCoordinates[1]);
+
+      if (preferences[2][1]) {
         generateRedPolylinesFromSteepPoints(polylineCoordinates);
-        trafficStatus = await TrafficService()
-            .getTrafficStatus(startPoint!, polylineCoordinates[1]);
 
         List<List<LatLng>> sharpTurnPoints =
             TurnDetector().detectTurns(polylineCoordinates);
-        print(sharpTurnPoints);
 
         Map<LatLng, int> startPointsMap = getStartPointsMap(sharpTurnPoints);
         List<LatLng> startPointsList = getStartPointsList(sharpTurnPoints);
@@ -200,54 +174,50 @@ class _DriveScreenState extends State<DriveScreen> {
       child: Scaffold(
         body: Stack(
           children: [
-            Container(
-              height: MediaQuery.of(context).size.height,
-              width: MediaQuery.of(context).size.width,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Google Map
-                  _currentP == null
-                      ? const Center(
-                          child: Text(
-                            "Loading...",
-                            style: TextStyle(
-                              fontSize: 24,
-                            ),
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // Google Map
+                _currentP == null
+                    ? const Center(
+                        child: Text(
+                          "Loading...",
+                          style: TextStyle(
+                            fontSize: 24,
                           ),
-                        )
-                      : GoogleMap(
-                          // Markers
-                          markers: {
-                            // Destination marker
-                            if (_destination != null) _destination!,
-
-                            // Live location marker
-                            Marker(
-                              markerId: MarkerId("_currentLocation"),
-                              icon: BitmapDescriptor.defaultMarker,
-                              position: _currentP!,
-                              infoWindow: InfoWindow(
-                                title: "Current Location",
-                              ),
-                            ),
-                          },
-                          polylines: Set<Polyline>.of(polylines.values),
-                          onLongPress: _addMarker,
-                          onMapCreated: _onMapCreated,
-                          initialCameraPosition: CameraPosition(
-                            target: initialLocation,
-                            zoom: 15.0,
-                          ),
-                          myLocationEnabled: true,
-                          myLocationButtonEnabled: true,
-                          mapType: MapType
-                              .normal, // Use normal map type for simplicity
-                          zoomControlsEnabled: true,
-                          compassEnabled: true,
                         ),
-                ],
-              ),
+                      )
+                    : GoogleMap(
+                        // Markers
+                        markers: {
+                          // Destination marker
+                          if (_destination != null) _destination!,
+
+                          // Live location marker
+                          Marker(
+                            markerId: MarkerId("_currentLocation"),
+                            icon: BitmapDescriptor.defaultMarker,
+                            position: _currentP!,
+                            infoWindow: InfoWindow(
+                              title: "Current Location",
+                            ),
+                          ),
+                        },
+                        polylines: Set<Polyline>.of(polylines.values),
+                        onLongPress: _addMarker,
+                        onMapCreated: _onMapCreated,
+                        initialCameraPosition: CameraPosition(
+                          target: initialLocation,
+                          zoom: 15.0,
+                        ),
+                        myLocationEnabled: true,
+                        myLocationButtonEnabled: true,
+                        mapType: MapType
+                            .normal, // Use normal map type for simplicity
+                        zoomControlsEnabled: true,
+                        compassEnabled: true,
+                      ),
+              ],
             ),
             Positioned(
               right: 8,
@@ -540,8 +510,9 @@ class _DriveScreenState extends State<DriveScreen> {
           // Speed
           if (currentLocation.speed != null) {
             double speedInMetersPerSecond = currentLocation.speed!;
+            // ignore: unused_local_variable
             double speedInKmPerHour = speedInMetersPerSecond * 3.6;
-            double speedInMilesPerHour = speedInKmPerHour / 1.689;
+            // double speedInMilesPerHour = speedInKmPerHour / 1.689;
           }
           // Current Position
           _currentP =

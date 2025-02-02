@@ -54,7 +54,7 @@ dependencies:
   connectivity_plus: ^6.1.2
   path_provider: ^2.1.5
   latlong2: ^0.9.1
-  introduction_screen: ^3.1.14
+  smooth_page_indicator: ^1.2.0+3
   just_audio: ^0.9.43
 
   # The following adds the Cupertino Icons font to your application.

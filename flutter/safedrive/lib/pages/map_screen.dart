@@ -2,9 +2,9 @@ import 'dart:convert';
 import 'package:flutter/rendering.dart';
 
 import '../models/misc.dart';
-import 'drivescreen.dart';
+import 'drive_screen.dart';
 import 'package:safedrive/main.dart';
-import 'favoritespage.dart';
+import 'favorites_page.dart';
 import 'package:safedrive/pages/.env.dart';
 import 'package:uuid/uuid.dart';
 // Google
