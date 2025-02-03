@@ -150,10 +150,6 @@ class _SettingScreenState extends State<SettingScreen> {
     }
   }
 
-  // Widget _title() {
-  //   return const Text("Firebase Auth");
-  // }
-
   Widget _entryField(
     String title,
     TextEditingController controller,
