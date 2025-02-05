@@ -1,6 +1,7 @@
 //
 import 'package:flutter/material.dart';
 import 'favorites_page.dart';
+import 'package:safedrive/pages/drive_screen.dart';
 //
 import 'package:flutter_map/flutter_map.dart';
 import 'dart:math';
@@ -12,11 +13,12 @@ import 'package:location/location.dart';
 import 'package:latlong2/latlong.dart';
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'drive_screen.dart';
 
 LatLng? _currentP;
 
 // Download tiles for offline use
-void downloadTilesForOfflineUse() async {
+Future<void> downloadTilesForOfflineUse() async {
   List<LatLng> latLngList = await DatabaseService().fetchLatLngList();
   if (_currentP != null) {
     latLngList.add(_currentP!);
@@ -92,6 +94,8 @@ Future<void> downloadTilesForBoundingBox(
   int minTileY = latToTileY(bounds.northEast.latitude, zoom);
   int maxTileY = latToTileY(bounds.southWest.latitude, zoom);
 
+  downloadedTiles = [];
+
   // Check if directory exists
   final directory = Directory(directoryPath);
   if (!await directory.exists()) {
@@ -107,6 +111,9 @@ Future<void> downloadTilesForBoundingBox(
       await downloadTile(zoom, x, y, tilePath);
     }
   }
+
+  print("DOWNLOADED!!");
+  print(downloadedTiles);
 }
 
 // Main function to handle download of tiles for all bounding boxes
@@ -182,25 +189,31 @@ class _OfflineMapPageState extends State<OfflineMapPage> {
       return tilePath;
     }
 
+    final mapController = MapController();
+
     return Scaffold(
-      body: FutureBuilder<String>(
-        future: getTilePath(15, 5270, 12707), // Example for a tile path
+      body: FutureBuilder<void>(
+        future: completed,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return Center(child: CircularProgressIndicator());
           } else if (snapshot.hasError) {
             return Center(child: Text('Error loading tile path'));
           } else {
-            String tilePath = snapshot.data!;
+            String tilePath =
+                '/data/user/0/com.safedrive.app/app_flutter/offline_tiles';
 
             return FlutterMap(
+              mapController: mapController,
               options: MapOptions(
-                initialCenter: _currentP ?? LatLng(24, 86),
+                initialCenter: LatLng(downloadedTiles[0][1].toDouble(),
+                    downloadedTiles[0][2].toDouble()),
                 initialZoom: 15,
               ),
               children: [
                 TileLayer(
-                  urlTemplate: '$tilePath/{z}/{x}/{y}.png',
+                  urlTemplate: 'file://$tilePath/{z}/{x}/{y}.png',
+                  userAgentPackageName: 'com.example.safedrive',
                   tileProvider: FileTileProvider(),
                 ),
               ],
@@ -259,6 +272,7 @@ class DatabaseService {
 
   late final CollectionReference _favoritePlaceRef;
 
+  // the following method runs when the class is initialized, to set up logic and initialize values
   DatabaseService() {
     _favoritePlaceRef = _firestore
         .collection(favoritePlaceCollectionReference)

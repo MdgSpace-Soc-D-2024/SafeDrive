@@ -46,7 +46,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
           Row(
             children: [
               Container(
-                  alignment: Alignment(0, 0.80),
+                  alignment: Alignment.bottomCenter,
                   child:
                       SmoothPageIndicator(controller: _controller, count: 3)),
 

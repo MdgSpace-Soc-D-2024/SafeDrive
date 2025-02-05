@@ -4,6 +4,7 @@ import 'package:safedrive/services/services.dart';
 import '../models/misc.dart';
 import 'setting_screen.dart';
 import 'package:safedrive/pages/.env.dart';
+import 'package:safedrive/pages/offline_map_page.dart';
 // Google
 import 'package:flutter_polyline_points/flutter_polyline_points.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
@@ -22,6 +23,7 @@ import 'package:just_audio/just_audio.dart';
 int speedInKmPerHour = 0;
 LatLng initialLocation = LatLng(37.4223, -122.0848);
 LatLng? lastLocation;
+late Future<void> completed;
 
 List<LatLng> latlngList = [];
 
@@ -77,7 +79,7 @@ class _DriveScreenState extends State<DriveScreen> {
     getLocationUpdates();
 
     // start downloading tiles for offline use
-    // downloadTilesForOfflineUse();
+    completed = downloadTilesForOfflineUse();
   }
 
   // checks if our platform is Android and uses that to improve performance
