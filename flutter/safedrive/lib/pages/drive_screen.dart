@@ -247,6 +247,21 @@ class _DriveScreenState extends State<DriveScreen> {
             ),
             Positioned(
               right: 8,
+              top: 110,
+              // button to display info on how to use the app
+              child: FloatingActionButton(
+                onPressed: () {
+                  showInfoDialog(context);
+                },
+                mini: true,
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(5)),
+                child: Icon(Icons.question_mark_sharp),
+              ),
+            ),
+            Positioned(
+              right: 8,
               bottom: 100,
               child: FloatingActionButton(
                 // Favorites button

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:safedrive/pages/.env.dart';
 import 'package:http/http.dart' as http;
+import 'package:flutter/material.dart';
 // Google
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 import 'package:google_maps_flutter_platform_interface/google_maps_flutter_platform_interface.dart';
@@ -293,4 +294,49 @@ class TrafficService {
 
     return trafficStatus;
   }
+}
+
+// info dialog
+void showInfoDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (BuildContext context) {
+      return AlertDialog(
+        title: Text('Important Information'),
+        content: SingleChildScrollView(
+          child: ListBody(
+            children: <Widget>[
+              Text(
+                '• Red polylines represent steep slopes. Stay cautious while driving on these roads.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• Blue polylines indicate sharp turns ahead. Be prepared to adjust your driving.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• Ensure your location is enabled for accurate route tracking.',
+                style: TextStyle(fontSize: 16),
+              ),
+              SizedBox(height: 8),
+              Text(
+                '• To add a marker to your destination, long press on the map.',
+                style: TextStyle(fontSize: 16),
+              ),
+            ],
+          ),
+        ),
+        actions: <Widget>[
+          TextButton(
+            child: Text('Got it'),
+            onPressed: () {
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      );
+    },
+  );
 }

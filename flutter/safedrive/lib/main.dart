@@ -105,7 +105,6 @@ class MyApp extends StatelessWidget {
 
   Future<bool> _checkFirstLaunch() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    prefs.setBool('isFirstLaunch', true);
     bool isFirstLaunch = prefs.getBool('isFirstLaunch') ?? true;
     return isFirstLaunch;
   }

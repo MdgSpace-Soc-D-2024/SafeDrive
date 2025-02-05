@@ -43,49 +43,58 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             ],
           ),
           // dot indicators
-          Row(
-            children: [
-              Container(
-                  alignment: Alignment.bottomCenter,
-                  child:
-                      SmoothPageIndicator(controller: _controller, count: 3)),
+          Positioned(
+            bottom: 20,
+            left: 30,
+            child: Row(
+              spacing: 100,
+              children: [
+                SmoothPageIndicator(
+                  controller: _controller,
+                  count: 3,
+                  effect: const WormEffect(
+                    dotColor: Colors.white,
+                    activeDotColor: Colors.black,
+                  ),
+                ),
 
-              // next or done
-              onLastPage
-                  ? ElevatedButton(
-                      onPressed: () {
-                        _setOnboardingComplete();
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) {
-                              return MyHomePage();
-                            },
+                // next or done
+                onLastPage
+                    ? ElevatedButton(
+                        onPressed: () {
+                          _setOnboardingComplete();
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) {
+                                return MyHomePage();
+                              },
+                            ),
+                          );
+                        },
+                        child: Text(
+                          "Done",
+                          style: TextStyle(
+                            fontSize: 14,
                           ),
-                        );
-                      },
-                      child: Text(
-                        "Done",
-                        style: TextStyle(
-                          fontSize: 14,
+                        ),
+                      )
+                    : ElevatedButton(
+                        onPressed: () {
+                          _controller.nextPage(
+                            duration: Duration(milliseconds: 500),
+                            curve: Curves.easeIn,
+                          );
+                        },
+                        child: Text(
+                          "Next",
+                          style: TextStyle(
+                            fontSize: 14,
+                          ),
                         ),
                       ),
-                    )
-                  : ElevatedButton(
-                      onPressed: () {
-                        _controller.nextPage(
-                          duration: Duration(milliseconds: 500),
-                          curve: Curves.easeIn,
-                        );
-                      },
-                      child: Text(
-                        "Next",
-                        style: TextStyle(
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-            ],
+              ],
+            ),
           )
         ],
       ),
