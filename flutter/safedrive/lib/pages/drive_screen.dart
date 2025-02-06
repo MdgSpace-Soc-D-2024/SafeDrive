@@ -79,7 +79,7 @@ class _DriveScreenState extends State<DriveScreen> {
     getLocationUpdates();
 
     // start downloading tiles for offline use
-    completed = downloadTilesForOfflineUse();
+    // completed = downloadTilesForOfflineUse();
   }
 
   // checks if our platform is Android and uses that to improve performance
@@ -245,6 +245,7 @@ class _DriveScreenState extends State<DriveScreen> {
                 child: Icon(Icons.center_focus_strong),
               ),
             ),
+
             Positioned(
               right: 8,
               top: 110,
@@ -274,27 +275,22 @@ class _DriveScreenState extends State<DriveScreen> {
                     context: context,
                     builder: (BuildContext context) {
                       return Dialog(
-                        backgroundColor: Colors.white,
                         insetPadding: EdgeInsets.all(10),
                         child: Container(
                           height: MediaQuery.of(context).size.height * 0.75,
                           width: MediaQuery.of(context).size.width * 0.90,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                          ),
                           child: Column(
                             children: [
                               Container(
                                 width: MediaQuery.of(context).size.width * 0.90,
-                                padding: EdgeInsets.all(10),
-                                // decoration: BoxDecoration(
-                                //   border: Border(color: Colors.black),
-                                // ),
+                                padding: EdgeInsets.symmetric(
+                                    horizontal: 50, vertical: 15),
                                 child: Text(
                                   "Favorites",
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 20,
+                                    letterSpacing: 1.3,
                                   ),
                                 ),
                               ),

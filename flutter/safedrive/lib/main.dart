@@ -118,7 +118,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _currentIndex = 1;
+  int _currentIndex = 0;
   final List<Widget> _screens = [
     MapScreen(),
     DriveScreen(),

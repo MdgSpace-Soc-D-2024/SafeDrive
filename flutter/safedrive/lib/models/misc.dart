@@ -317,7 +317,7 @@ void showInfoDialog(BuildContext context) {
               ),
               SizedBox(height: 8),
               Text(
-                '• Ensure your location is enabled for accurate route tracking.',
+                '• Ensure your location is enabled for getting a route.',
                 style: TextStyle(fontSize: 16),
               ),
               SizedBox(height: 8),
